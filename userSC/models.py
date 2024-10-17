@@ -14,7 +14,7 @@ class User(models.Model):
 
 
 class User_details(models.Model):
-    id = models.OneToOneField(User, on_delete=models.CASCADE)
+    id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     tel = models.CharField(max_length=15)
     city = models.CharField(max_length=50)
     state = models.CharField(max_length=2, blank=True, default="RN")
