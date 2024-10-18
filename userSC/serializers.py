@@ -1,6 +1,9 @@
+from django.contrib.auth.password_validation import validate_password
+from django.core.validators import validate_email
 from django.db import transaction
 from rest_framework import serializers
 from .models import User, User_details
+import re
 
 
 class UserDetailsSerializer(serializers.ModelSerializer):
@@ -17,17 +20,46 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             "name",
             "email",
-            "password_hash",
-            "is_employee",
-            "deletion_date",
+            "password",
             "user_details",
         ]
 
-    def validate_name(self, value): ...
+    def validate_name(self, value):
+        if len(value) < 10:
+            raise serializers.ValidationError(
+                "Por favor, defina um nome que facilite sua identificação."
+            )
 
-    def validate_email(self, value): ...
+        if User.objects.filter(name=value):
+            raise serializers.ValidationError(
+                "Este nome já está em uso. Por favor, defina um nome que facilite sua identificação."
+            )
 
-    def validate_password_hash(self, value): ...
+        return value
+
+    def validate_email(self, value):
+        try:
+            # Verifica se o email está no padrão válido.
+            validate_email(value)
+        except Exception as e:
+            raise serializers.ValidationError(f"E-mail inválido: {e}")
+
+        return value
+
+    def validate_password(self, value):
+        try:
+            # Valida a senha com as regras definidas em 'Settings.py'.
+            validate_password(value)
+        except Exception as e:
+            raise serializers.ValidationError(f"Senha inválida: {e}")
+
+        # Verifica se a senha contém pelo menos um símbolo (Django não oferece por padrão).
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", value):
+            raise serializers.ValidationError(
+                "Senha inválida: A senha deve conter pelo menos um caractere especial."
+            )
+
+        return value
 
     def create(self, validated_data):
         """Cria o usuário e sua tabela de detalhes."""
