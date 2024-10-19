@@ -1,11 +1,15 @@
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework import status, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import LoginSerializer, LogoutSerializer
 
 
 class LoginView(APIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "limited_access"
+
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -23,6 +27,9 @@ class LoginView(APIView):
 
 
 class LogoutView(APIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "limited_access"
+
     def post(self, request):
         serializer = LogoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -40,8 +47,7 @@ class LogoutView(APIView):
 
         return Response(
             {
-                "title": "Logout Efetuado",
-                "text": "Sua conta foi desconectada com sucesso.",
+                "message": "Sua conta foi desconectada com sucesso.",
             },
             status=status.HTTP_200_OK,
         )

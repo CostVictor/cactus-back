@@ -20,6 +20,7 @@ CORS_ORIGIN_ALLOW_ALL = True  # Aceita solicitações de qualquer dominio.
 # Para restringir solicitações a dominios específicos.
 CORS_ORIGIN_WHITELIST = ["http://127.0.0.1"]
 
+
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
@@ -27,7 +28,11 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_THROTTLE_RATES": {
+        "limited_access": "5/minute",  # 5 requisições por minuto.
+    },
 }
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=30),
@@ -53,6 +58,7 @@ INSTALLED_APPS = [
     "userSC",
 ]
 
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -65,6 +71,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "cactus.urls"
+
 
 TEMPLATES = [
     {

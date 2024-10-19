@@ -1,8 +1,10 @@
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.hashers import make_password
 from django.core.validators import validate_email
 from django.db import transaction
 from rest_framework import serializers
 from .models import User, User_details
+from .variables import cities
 import re
 
 
@@ -11,9 +13,29 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         model = User_details
         fields = ["tel", "city", "state", "path_img_profile"]
 
+    def validate_tel(self, value):
+        # Define a regex para o formato (99) 99999-9999
+        pattern = r"^\(\d{2}\) \d{5}-\d{4}$"
+
+        if not re.match(pattern, value):
+            raise serializers.ValidationError(
+                "O telefone deve estar no formato (99) 99999-9999."
+            )
+
+        return value
+
+    def validate_city(self, value):
+        # Verifica se o valor está entre os peritidos.
+        if value not in cities:
+            raise serializers.ValidationError(
+                "Por favor, selecione uma opção de cidade válida."
+            )
+
+        return value
+
 
 class UserSerializer(serializers.ModelSerializer):
-    user_details = UserDetailsSerializer(read_only=True)
+    user_details = UserDetailsSerializer()
 
     class Meta:
         model = User
@@ -27,22 +49,19 @@ class UserSerializer(serializers.ModelSerializer):
     def validate_name(self, value):
         if len(value) < 10:
             raise serializers.ValidationError(
-                "Por favor, defina um nome que facilite sua identificação."
+                "Por favor, defina um nome de usuário que facilite sua identificação."
             )
 
         if User.objects.filter(name=value):
             raise serializers.ValidationError(
-                "Este nome já está em uso. Por favor, defina um nome que facilite sua identificação."
+                "Este nome de usuário já está em uso. Por favor, defina um nome que facilite sua identificação."
             )
 
         return value
 
     def validate_email(self, value):
-        try:
-            # Verifica se o email está no padrão válido.
-            validate_email(value)
-        except Exception as e:
-            raise serializers.ValidationError(f"E-mail inválido: {e}")
+        # Verifica se o email está no padrão válido. Caso contrário, retorna erro.
+        validate_email(value)
 
         return value
 
@@ -59,17 +78,19 @@ class UserSerializer(serializers.ModelSerializer):
                 "Senha inválida: A senha deve conter pelo menos um caractere especial."
             )
 
-        return value
+        return make_password(value)
 
     def create(self, validated_data):
         """Cria o usuário e sua tabela de detalhes."""
         with transaction.atomic():
             userDetails = validated_data.pop("user_details")
+
             user = User(**validated_data)
-            user.set_password(validated_data["password"])
             user.save()
 
-            User_details.objects.create(id=user.id, **userDetails)
+            details = UserDetailsSerializer(data=userDetails)
+            details.is_valid(raise_exception=True)
+            details.save(sc_user=user)
 
         return user
 

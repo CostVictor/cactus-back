@@ -21,8 +21,6 @@ class LoginSerializer(serializers.Serializer):
 
 
 class LogoutSerializer(serializers.Serializer):
-    email = serializers.CharField()
-
     def validate(self, attrs):
         refresh_token = attrs.get("refresh_token")
 
