@@ -1,6 +1,5 @@
-from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
-from django.contrib.auth.hashers import check_password
+from rest_framework import serializers
 from userSC.models import User
 
 
@@ -13,13 +12,9 @@ class LoginSerializer(serializers.Serializer):
         password = attrs.get("password")
 
         try:
-            # Verifica se o usuário existe.
             user = User.objects.get(email=email)
-
-            # Valida a senha.
-            if check_password(password, user.password):
+            if user.check_password(password):
                 attrs["user"] = user
-
                 return attrs
         except:
             pass
@@ -32,11 +27,15 @@ class LoginSerializer(serializers.Serializer):
 
 class LogoutSerializer(serializers.Serializer):
     def validate(self, attrs):
-        refresh_token = attrs.get("refresh_token")
+        refresh_token = attrs.get("refresh")
+        access_token = attrs.get("access")
 
-        if refresh_token is None:
+        if refresh_token is None or access_token is None:
             raise serializers.AuthenticationFailed(
                 "Não foi possível identificar o token do usuário.",
             )
+
+        attrs["refresh_token"] = refresh_token
+        attrs["access_token"] = access_token
 
         return attrs

@@ -41,7 +41,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         db_table = "SC_User"
 
     def __str__(self):
-        return self.name
+        return self.username
 
 
 class User_details(models.Model):
