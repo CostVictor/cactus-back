@@ -1,8 +1,9 @@
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.throttling import ScopedRateThrottle
-from rest_framework import status, serializers
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import status
 from .serializers import LoginSerializer, LogoutSerializer
 
 
@@ -41,9 +42,7 @@ class LogoutView(APIView):
             token.blacklist()
 
         except Exception as e:
-            raise serializers.ValidationError(
-                f"{e}", status=status.HTTP_400_BAD_REQUEST
-            )
+            raise AuthenticationFailed(f"{e}")
 
         return Response(
             {

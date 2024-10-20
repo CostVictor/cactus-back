@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from django.contrib.auth import authenticate
+from rest_framework.exceptions import AuthenticationFailed
+from django.contrib.auth.hashers import check_password
+from userSC.models import User
 
 
 class LoginSerializer(serializers.Serializer):
@@ -10,14 +12,22 @@ class LoginSerializer(serializers.Serializer):
         email = attrs.get("email")
         password = attrs.get("password")
 
-        user = authenticate(email=email, password_hash=password)
-        if user is None:
-            raise serializers.ValidationError(
-                "Credenciais inválidas. Por favor, tente novamente."
-            )
+        try:
+            # Verifica se o usuário existe.
+            user = User.objects.get(email=email)
 
-        attrs["user"] = user
-        return attrs
+            # Valida a senha.
+            if check_password(password, user.password):
+                attrs["user"] = user
+
+                return attrs
+        except:
+            pass
+
+        # Retorna erro caso o usuário não exista ou se a senha estiver incorreta.
+        raise AuthenticationFailed(
+            "Credenciais inválidas. Por favor, tente novamente.",
+        )
 
 
 class LogoutSerializer(serializers.Serializer):
@@ -25,6 +35,8 @@ class LogoutSerializer(serializers.Serializer):
         refresh_token = attrs.get("refresh_token")
 
         if refresh_token is None:
-            raise serializers.ValidationError("Não foi possível identificar o usuário.")
+            raise serializers.AuthenticationFailed(
+                "Não foi possível identificar o token do usuário.",
+            )
 
         return attrs

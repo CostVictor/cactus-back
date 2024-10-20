@@ -122,6 +122,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTH_USER_MODEL = "userSC.User"
+
 
 LANGUAGE_CODE = "pt-br"
 
