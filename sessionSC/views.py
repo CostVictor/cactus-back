@@ -6,7 +6,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import LoginSerializer, LogoutSerializer
+
+from .utils import generate_response_with_cookie
+from .serializers import LoginSerializer
 
 
 class LoginView(APIView):
@@ -19,14 +21,12 @@ class LoginView(APIView):
 
         user = serializer.validated_data["user"]
         refresh = RefreshToken.for_user(user)
+        data = {
+            "username": user.username,
+            "role": "employee" if user.is_employee else "client",
+        }
 
-        return Response(
-            {
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
-            },
-            status=status.HTTP_200_OK,
-        )
+        return generate_response_with_cookie(refresh, data)
 
 
 class LogoutView(APIView):
@@ -35,15 +35,18 @@ class LogoutView(APIView):
     throttle_scope = "limited_access"
 
     def post(self, request):
-        serializer = LogoutSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        auth_header = request.headers.get("Authorization")
 
-        refresh_token = serializer.validated_data.get("refresh_token")
-        access_token = serializer.validated_data.get("access_token")
+        if not auth_header:
+            raise Response(
+                {"detail": "O token de atualização é obrigatório."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
+        refresh_token = auth_header.split()[1]
         try:
             refresh_token.blacklist()
-            access_token.blacklist()
+            # access_token.blacklist()
 
         except Exception as e:
             raise Response(
@@ -64,30 +67,31 @@ class RefreshView(TokenRefreshView):
     O token de refresh tem validade para apenas um uso.
     """
 
+    permission_classes = [IsAuthenticated]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "limited_access"
 
     def post(self, request):
-        refresh_token = request.data.get("refresh")
+        auth_header = request.headers.get("Authorization")
 
-        if not refresh_token:
+        if not auth_header:
             raise Response(
-                {"detail": "Refresh token is required."},
+                {"detail": "O token de atualização é obrigatório."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        print(auth_header)
+
+        refresh_token = auth_header.split()[1]
         try:
             # Valida o token de refresh.
             validated_token = self.get_token(refresh_token)
             user = validated_token["user"]
 
             new_refresh_token = RefreshToken.for_user(user)
-            return Response(
-                {
-                    "refresh": str(new_refresh_token),
-                    "access": str(new_refresh_token.access_token),
-                },
-                status=status.HTTP_200_OK,
+            return generate_response_with_cookie(
+                new_refresh_token, {"message": "Token atualizado."}
             )
+
         except Exception as e:
             raise AuthenticationFailed(f"{e}")

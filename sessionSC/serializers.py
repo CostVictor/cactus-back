@@ -23,19 +23,3 @@ class LoginSerializer(serializers.Serializer):
         raise AuthenticationFailed(
             "Credenciais inválidas. Por favor, tente novamente.",
         )
-
-
-class LogoutSerializer(serializers.Serializer):
-    def validate(self, attrs):
-        refresh_token = attrs.get("refresh")
-        access_token = attrs.get("access")
-
-        if refresh_token is None or access_token is None:
-            raise serializers.AuthenticationFailed(
-                "Não foi possível identificar o token do usuário.",
-            )
-
-        attrs["refresh_token"] = refresh_token
-        attrs["access_token"] = access_token
-
-        return attrs

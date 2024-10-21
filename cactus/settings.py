@@ -35,10 +35,16 @@ REST_FRAMEWORK = {
 
 
 SIMPLE_JWT = {
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),  # 30 minutos para tokens de acesso.
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Uma semana para o token de refresh.
-    "BLACKLIST_AFTER_ROTATION": True,
-    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,  # Envia o token access anterior para BLACKLIST.
+    "ROTATE_REFRESH_TOKENS": True,  # Permite apenas um único uso do token de refresh.
+    "AUTH_COOKIE": "accessToken",  # Nome do cookie.
+    "AUTH_COOKIE_HTTP_ONLY": True,  # O frontend não possui acesso ao token.
+    "AUTH_COOKIE_SECURE": False,  # Só envia em HTTPS.
+    "AUTH_COOKIE_SAMESITE": "Strict",  # Envia o token apenas para o dominio do servidor.
 }
 
 
