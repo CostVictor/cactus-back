@@ -11,15 +11,12 @@ class LoginSerializer(serializers.Serializer):
         email = attrs.get("email")
         password = attrs.get("password")
 
-        try:
-            user = User.objects.get(email=email)
-            if user.check_password(password):
-                attrs["user"] = user
-                return attrs
-        except:
-            pass
+        user = User.objects.filter(email=email).first()
+        if user is None or not user.check_password(password):
+            # Retorna erro caso o usuário não exista ou se a senha estiver incorreta.
+            raise AuthenticationFailed(
+                "Credenciais inválidas. Por favor, tente novamente.",
+            )
 
-        # Retorna erro caso o usuário não exista ou se a senha estiver incorreta.
-        raise AuthenticationFailed(
-            "Credenciais inválidas. Por favor, tente novamente.",
-        )
+        attrs["user"] = user
+        return attrs

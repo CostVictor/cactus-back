@@ -18,7 +18,10 @@ CORS_ALLOW_CREDENTIALS = True  # Permitir cookies em requisições CORS.
 CORS_ORIGIN_ALLOW_ALL = True  # Aceita solicitações de qualquer dominio.
 
 # Para restringir solicitações a dominios específicos.
-CORS_ORIGIN_WHITELIST = ["http://127.0.0.1"]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://192.168.3.102:3000",
+]
 
 
 REST_FRAMEWORK = {
@@ -35,16 +38,14 @@ REST_FRAMEWORK = {
 
 
 SIMPLE_JWT = {
-    "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),  # 30 minutos para tokens de acesso.
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),  # 10 minutos para tokens de acesso.
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Uma semana para o token de refresh.
     "BLACKLIST_AFTER_ROTATION": True,  # Envia o token access anterior para BLACKLIST.
-    "ROTATE_REFRESH_TOKENS": True,  # Permite apenas um único uso do token de refresh.
-    "AUTH_COOKIE": "accessToken",  # Nome do cookie.
+    "ROTATE_REFRESH_TOKENS": True,  # Permite apenas um único uso do token de refresh. # Nome do cookie.
     "AUTH_COOKIE_HTTP_ONLY": True,  # O frontend não possui acesso ao token.
-    "AUTH_COOKIE_SECURE": False,  # Só envia em HTTPS.
-    "AUTH_COOKIE_SAMESITE": "Strict",  # Envia o token apenas para o dominio do servidor.
+    "AUTH_COOKIE_SECURE": True,  # Só envia em HTTPS.
+    "AUTH_COOKIE_SAMESITE": "None",  # Permite o envio de tokens para dominios distintos.
 }
 
 

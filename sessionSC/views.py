@@ -1,7 +1,7 @@
+from rest_framework.request import Request
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.throttling import ScopedRateThrottle
-from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -19,14 +19,23 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        prev_token = request.COOKIES.get("refresh_token")
+        if prev_token:
+            try:
+                invalid_token = RefreshToken(prev_token)
+                invalid_token.blacklist()
+            except:
+                # O token já é inválido.
+                pass
+
         user = serializer.validated_data["user"]
-        refresh = RefreshToken.for_user(user)
+        new_token = RefreshToken.for_user(user)
         data = {
             "username": user.username,
             "role": "employee" if user.is_employee else "client",
         }
 
-        return generate_response_with_cookie(refresh, data)
+        return generate_response_with_cookie(new_token, data)
 
 
 class LogoutView(APIView):
@@ -35,24 +44,21 @@ class LogoutView(APIView):
     throttle_scope = "limited_access"
 
     def post(self, request):
-        auth_header = request.headers.get("Authorization")
+        refresh_token = request.COOKIES.get("refresh_token")
 
-        if not auth_header:
+        if not refresh_token:
             raise Response(
                 {"detail": "O token de atualização é obrigatório."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        refresh_token = auth_header.split()[1]
         try:
-            refresh_token.blacklist()
-            # access_token.blacklist()
+            invalid_token = RefreshToken(refresh_token)
+            invalid_token.blacklist()
 
-        except Exception as e:
-            raise Response(
-                {"detail": f"{e}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        except:
+            # O token já é inválido.
+            pass
 
         return Response(
             {
@@ -71,27 +77,5 @@ class RefreshView(TokenRefreshView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "limited_access"
 
-    def post(self, request):
-        auth_header = request.headers.get("Authorization")
-
-        if not auth_header:
-            raise Response(
-                {"detail": "O token de atualização é obrigatório."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        print(auth_header)
-
-        refresh_token = auth_header.split()[1]
-        try:
-            # Valida o token de refresh.
-            validated_token = self.get_token(refresh_token)
-            user = validated_token["user"]
-
-            new_refresh_token = RefreshToken.for_user(user)
-            return generate_response_with_cookie(
-                new_refresh_token, {"message": "Token atualizado."}
-            )
-
-        except Exception as e:
-            raise AuthenticationFailed(f"{e}")
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        return super().post(request, *args, **kwargs)
