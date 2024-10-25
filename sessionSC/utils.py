@@ -21,7 +21,7 @@ def generate_response_with_cookie(
         samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"],
         max_age=max_age,
         httponly=True,
-        path="api/session/",
+        path="/api/session/",
     )
 
     response.set_cookie(
@@ -31,7 +31,7 @@ def generate_response_with_cookie(
         samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"],
         max_age=max_age,
         httponly=True,
-        path="api/",
+        path="/api/",
     )
 
     return response

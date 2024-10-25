@@ -39,6 +39,7 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "AUTH_COOKIE": "access_token",
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),  # 10 minutos para tokens de acesso.
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Uma semana para o token de refresh.
     "BLACKLIST_AFTER_ROTATION": True,  # Envia o token access anterior para BLACKLIST.
@@ -63,6 +64,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "sessionSC",
     "userSC",
+    "productSC",
 ]
 
 
