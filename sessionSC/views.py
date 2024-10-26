@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from cactus.core.view import SCView
-from cactus.authentication import SCAuthentication
+from cactus.core.authentication import SCAuthentication
 from .utils import generate_response_with_cookie
 from .serializers import LoginSerializer
 

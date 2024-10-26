@@ -24,6 +24,12 @@ class SCView(APIView):
             status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
+    def patch(self, request: Request) -> Response:
+        return Response(
+            {"detail": 'O Método "PATCH" não é permitido.'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
     def delete(self, request: Request) -> Response:
         return Response(
             {"detail": 'O Método "DELETE" não é permitido.'},
@@ -31,6 +37,31 @@ class SCView(APIView):
         )
 
     def validate_before_access(self, user: User) -> bool:
-        """Método para validar o que é exigido para acessar a view."""
+        """Validar o que é exigido para acessar qualquer endpoint da view."""
+
+        return True
+
+    def validate_get_before_access(self, user: User) -> bool:
+        """Validar o que é exigido para acessar o método get da view."""
+
+        return True
+
+    def validate_post_before_access(self, user: User) -> bool:
+        """Validar o que é exigido para acessar o método post da view."""
+
+        return True
+
+    def validate_put_before_access(self, user: User) -> bool:
+        """Validar o que é exigido para acessar o método put da view."""
+
+        return True
+
+    def validate_patch_before_access(self, user: User) -> bool:
+        """Validar o que é exigido para acessar o método patch da view."""
+
+        return True
+
+    def validate_delete_before_access(self, user: User) -> bool:
+        """Validar o que é exigido para acessar o método delete da view."""
 
         return True

@@ -3,7 +3,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.exceptions import AuthenticationFailed
 from django.conf import settings
 
-from .core.view import SCView
+from .view import SCView
 
 
 class SCAuthentication(JWTAuthentication):
@@ -33,8 +33,25 @@ class SCAuthentication(JWTAuthentication):
 
         # Verifica se a view atual herda `SCView` para execução do método de validação de acesso.
         if issubclass(view.__class__, SCView):
-            validated = view.validate_before_access(user)
-            if not validated:
+            validation_methods = {
+                "get": view.validate_get_before_access,
+                "post": view.validate_post_before_access,
+                "put": view.validate_put_before_access,
+                "patch": view.validate_patch_before_access,
+                "delete": view.validate_delete_before_access,
+            }
+
+            # Validação global para a view.
+            validated_all = view.validate_before_access(user)
+
+            # Obtem o método da request.
+            request_method = request.method.lower()
+            method_current = validation_methods.get(request_method)
+
+            # Validação do método corrente.
+            validated_for_method = method_current(user)
+            
+            if not validated_all or not validated_for_method:
                 raise AuthenticationFailed(
                     f"Você não tem autorização para acessar este recurso."
                 )

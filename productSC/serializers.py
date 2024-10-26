@@ -1,13 +1,11 @@
-from cactus.core.serializers import BaseWithNotIncludeField
+from cactus.core.serializers import SCSerializer
 from rest_framework import serializers
 from django.db.models import Count
 
 from .models import Product_category, Product
 
 
-class ProductSerializer(BaseWithNotIncludeField):
-    category = serializers.CharField(source="Product_category.name")
-
+class ProductSerializer(SCSerializer):
     class Meta:
         model = Product
         fields = [
@@ -16,7 +14,6 @@ class ProductSerializer(BaseWithNotIncludeField):
             "price",
             "description",
             "path_img",
-            "category",
         ]
 
     def validate_quantity_in_stock(value):
@@ -57,13 +54,19 @@ class ProductSerializer(BaseWithNotIncludeField):
         return new_product
 
 
-class CategorySerializer(BaseWithNotIncludeField):
+class CategorySerializer(SCSerializer):
     # Obtem todos os produtos relacionados à categoria.
-    products = ProductSerializer(many=True)
+    products = serializers.SerializerMethodField()
 
     class Meta:
+        fields = ["name", "path_img", "products"]
         model = Product_category
-        fields = ["name", "position_order", "path_img", "products"]
+
+    def get_products(self, obj):
+        """Obtem todos os produtos relacionados à categoria e ordena pelo nome."""
+
+        products = obj.products.all().order_by("name")
+        return ProductSerializer(products, many=True).data
 
     def create(self, validated_data):
         """Cria uma nova categoria sem incluir nenhum produto."""

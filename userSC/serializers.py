@@ -1,4 +1,5 @@
 from django.core.validators import validate_email
+from cactus.core.serializers import SCSerializer
 from django.db import transaction
 from rest_framework import serializers
 from .models import User, User_details
@@ -6,7 +7,7 @@ from .variables import cities
 import re
 
 
-class UserDetailsSerializer(serializers.ModelSerializer):
+class UserDetailsSerializer(SCSerializer):
     class Meta:
         model = User_details
         fields = ["tel", "city", "state", "path_img_profile"]
@@ -32,7 +33,7 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         return value
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(SCSerializer):
     user_details = UserDetailsSerializer()
     password = serializers.CharField(write_only=True)
 
