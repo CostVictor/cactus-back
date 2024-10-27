@@ -2,12 +2,12 @@ from cactus.core.serializers import SCSerializer
 from rest_framework import serializers
 from django.db.models import Count
 
-from .models import Product_category, Product
+from .models import Snack_category, Description, Snack
 
 
-class ProductSerializer(SCSerializer):
+class SnackSerializer(SCSerializer):
     class Meta:
-        model = Product
+        model = Snack
         fields = [
             "name",
             "quantity_in_stock",
@@ -37,7 +37,7 @@ class ProductSerializer(SCSerializer):
     def validate_category(value):
         """Valida a existência de uma categoria com o nome fornecido e a retorna."""
 
-        category = Product_category.objects.filter(name=value)
+        category = Snack_category.objects.filter(name=value)
 
         if not category:
             raise serializers.ValidationError(
@@ -48,34 +48,60 @@ class ProductSerializer(SCSerializer):
 
     def create(self, validated_data):
         category = validated_data.pop("category")
-        new_product = Product(**validated_data)
-        new_product.save(category=category.id)
+        new_Snack = Snack(**validated_data)
+        new_Snack.save(category=category.id)
 
-        return new_product
+        return new_Snack
+
+
+class DescriptionSerializer(SCSerializer):
+    category = serializers.CharField(source="category.name")
+
+    class Meta:
+        fields = ["title", "text", "illustration_url", "category"]
+        model = Description
+
+    def validate(self, attrs):
+        name_category = self.category.lower()
+        title = attrs["title"].lower()
+
+        # Verifica se no título da descrição não possui o nome da categoria e retorna erro.
+        if name_category not in title:
+            raise serializers.ValidationError(
+                "O título da descrição deve incluir o nome da categoria."
+            )
+
+        return attrs
 
 
 class CategorySerializer(SCSerializer):
     # Obtem todos os produtos relacionados à categoria.
-    products = serializers.SerializerMethodField()
+    snacks = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
 
     class Meta:
-        fields = ["name", "path_img", "products"]
-        model = Product_category
+        fields = ["name", "path_img", "snacks", "description"]
+        model = Snack_category
 
-    def get_products(self, obj):
+    def get_snacks(self, obj):
         """Obtem todos os produtos relacionados à categoria e ordena pelo nome."""
 
-        products = obj.products.all().order_by("name")
-        return ProductSerializer(products, many=True).data
+        snacks = obj.snacks.all().order_by("name")
+        return SnackSerializer(snacks, many=True).data
+
+    def get_description(self, obj):
+        """Obtem a descrição da categoria."""
+
+        return DescriptionSerializer(obj.description, remove_field=["category"]).data
 
     def create(self, validated_data):
         """Cria uma nova categoria sem incluir nenhum produto."""
 
-        count_categories = Product_category.objects.aggregate(
+        count_categories = Snack_category.objects.aggregate(
             total_categorias=Count("id")
         )
 
-        new_category = Product_category(**validated_data)
+        new_category = Snack_category(**validated_data)
         new_category.save(position_order=count_categories["total_categorias"])
 
         return new_category

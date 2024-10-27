@@ -12,25 +12,27 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ("localhost", "192.168.3.102")
 
 CORS_ALLOW_CREDENTIALS = True  # Permitir cookies em requisições CORS.
-CORS_ORIGIN_ALLOW_ALL = True  # Aceita solicitações de qualquer dominio.
+CORS_ALLOW_ALL_ORIGINS = False  # Aceita solicitações de qualquer dominio.
 
 # Para restringir solicitações a dominios específicos.
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://192.168.3.102:3000",
-]
+CORS_ALLOWED_ORIGINS = ("http://192.168.3.102:3000",)
+
+CORS_ALLOW_METHODS = (
+    "DELETE",
+    "GET",
+    "PATCH",
+    "POST",
+    "PUT",
+)
 
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
     "DEFAULT_THROTTLE_RATES": {
         "limited_access": "5/minute",  # 5 requisições por minuto.
     },
@@ -38,7 +40,6 @@ REST_FRAMEWORK = {
 
 
 SIMPLE_JWT = {
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "AUTH_COOKIE": "access_token",
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),  # 10 minutos para tokens de acesso.
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Uma semana para o token de refresh.
@@ -46,7 +47,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,  # Permite apenas um único uso do token de refresh. # Nome do cookie.
     "AUTH_COOKIE_HTTP_ONLY": True,  # O frontend não possui acesso ao token.
     "AUTH_COOKIE_SECURE": True,  # Só envia em HTTPS.
-    "AUTH_COOKIE_SAMESITE": "None",  # Permite o envio de tokens para dominios distintos.
+    "AUTH_COOKIE_SAMESITE": "Strict",  # Só envia token para o mesmo dominio.
 }
 
 
@@ -64,7 +65,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "sessionSC",
     "userSC",
-    "productSC",
+    "snackSC",
 ]
 
 
