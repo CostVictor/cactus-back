@@ -1,6 +1,5 @@
 from cactus.core.serializers import SCSerializer
 from rest_framework import serializers
-from django.db.models import Count
 
 from .models import Snack_category, Description, Snack
 
@@ -63,10 +62,10 @@ class DescriptionSerializer(SCSerializer):
 
     def validate(self, attrs):
         name_category = self.category.lower()
-        title = attrs["title"].lower()
+        title_description = attrs["title"].lower()
 
         # Verifica se no título da descrição não possui o nome da categoria e retorna erro.
-        if name_category not in title:
+        if name_category not in title_description:
             raise serializers.ValidationError(
                 "O título da descrição deve incluir o nome da categoria."
             )
@@ -95,13 +94,15 @@ class CategorySerializer(SCSerializer):
         return DescriptionSerializer(obj.description, remove_field=["category"]).data
 
     def create(self, validated_data):
-        """Cria uma nova categoria sem incluir nenhum produto."""
+        """Cria uma nova categoria vazia."""
 
-        count_categories = Snack_category.objects.aggregate(
-            total_categorias=Count("id")
-        )
+        active_category_count = Snack_category.objects.filter(
+            deletion_date=None
+        ).count()
 
         new_category = Snack_category(**validated_data)
-        new_category.save(position_order=count_categories["total_categorias"])
+
+        # Salva a categoria nova como última posição.
+        new_category.save(position_order=active_category_count + 1)
 
         return new_category
