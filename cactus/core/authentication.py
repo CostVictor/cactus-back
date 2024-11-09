@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework_simplejwt.tokens import AccessToken
-from rest_framework.exceptions import AuthenticationFailed
 from django.conf import settings
 
 from .view import SCView
@@ -16,14 +16,16 @@ class SCAuthentication(JWTAuthentication):
         token = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE"])
 
         if token is None:
-            AuthenticationFailed("Acesso negado: token não encontrado.")
+            raise AuthenticationFailed("Acesso negado: token não encontrado.", 401)
 
         try:
             validated_token = AccessToken(token)
             return self.get_user(validated_token), validated_token
 
         except:
-            raise AuthenticationFailed(f"Acesso negado: O token é inválido ou expirou")
+            raise AuthenticationFailed(
+                f"Acesso negado: O token é inválido ou expirou", 401
+            )
 
     def has_permission(self, request, view):
         """Retorna se o usuário possui permição para acessar a view."""
@@ -50,9 +52,9 @@ class SCAuthentication(JWTAuthentication):
 
             # Validação do método corrente.
             validated_for_method = method_current(user)
-            
+
             if not validated_all or not validated_for_method:
-                raise AuthenticationFailed(
+                raise PermissionDenied(
                     f"Você não tem autorização para acessar este recurso."
                 )
 

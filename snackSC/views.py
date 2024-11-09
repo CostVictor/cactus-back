@@ -11,7 +11,7 @@ from .serializers import CategorySerializer
 
 
 class SnackCategoriesView(SCView):
-    def get(self, _):
+    def get(self, request):
         # Ordena as categorias por `position_order`.
         categories = Snack_category.objects.all().order_by("position_order")
         serializer = CategorySerializer(categories, many=True)

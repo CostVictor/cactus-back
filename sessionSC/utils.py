@@ -10,7 +10,7 @@ def generate_response_with_cookie(
 ):
     """Cria uma response com os cookies de access e refresh configurados em httponly."""
 
-    # ~ Criação da response com tokens HTTPOnly.
+    # ~ Criação da response com cookies.
     response = Response(data, status=status)
     max_age = timedelta(days=days_long).total_seconds()
 
@@ -19,9 +19,9 @@ def generate_response_with_cookie(
         value=str(refresh_token),
         secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
         samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"],
+        httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"],
         max_age=max_age,
-        httponly=True,
-        path="/api/session/",
+        path="/session/",
     )
 
     response.set_cookie(
@@ -29,9 +29,9 @@ def generate_response_with_cookie(
         value=str(refresh_token.access_token),
         secure=settings.SIMPLE_JWT["AUTH_COOKIE_SECURE"],
         samesite=settings.SIMPLE_JWT["AUTH_COOKIE_SAMESITE"],
+        httponly=settings.SIMPLE_JWT["AUTH_COOKIE_HTTP_ONLY"],
         max_age=max_age,
-        httponly=True,
-        path="/api/",
+        path="/",
     )
 
     return response

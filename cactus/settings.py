@@ -15,7 +15,7 @@ DEBUG = True
 ALLOWED_HOSTS = ("localhost", "192.168.3.102")
 
 CORS_ALLOW_CREDENTIALS = True  # Permitir cookies em requisições CORS.
-CORS_ALLOW_ALL_ORIGINS = False  # Aceita solicitações de qualquer dominio.
+CORS_ALLOW_ALL_ORIGINS = False  # False para produção.
 
 # Para restringir solicitações a dominios específicos.
 CORS_ALLOWED_ORIGINS = ("http://192.168.3.102:3000",)
@@ -33,6 +33,9 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+    ],
     "DEFAULT_THROTTLE_RATES": {
         "limited_access": "5/minute",  # 5 requisições por minuto.
     },
@@ -45,9 +48,9 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Uma semana para o token de refresh.
     "BLACKLIST_AFTER_ROTATION": True,  # Envia o token access anterior para BLACKLIST.
     "ROTATE_REFRESH_TOKENS": True,  # Permite apenas um único uso do token de refresh. # Nome do cookie.
-    "AUTH_COOKIE_HTTP_ONLY": True,  # O frontend não possui acesso ao token.
-    "AUTH_COOKIE_SECURE": True,  # Só envia em HTTPS.
-    "AUTH_COOKIE_SAMESITE": "Strict",  # Só envia token para o mesmo dominio.
+    "AUTH_COOKIE_HTTP_ONLY": False,  # True para produção.
+    "AUTH_COOKIE_SECURE": False,  # True para produção.
+    "AUTH_COOKIE_SAMESITE": "Lax",  # Strict para produção.
 }
 
 
