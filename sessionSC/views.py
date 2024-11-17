@@ -4,13 +4,13 @@ from rest_framework.exceptions import (
     PermissionDenied,
 )
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.response import Response
 from rest_framework import status
 
 from cactus.core.view import SCView
 from cactus.core.authentication import SCAuthentication
+from userSC.models import User
 
 from .serializers import LoginSerializer, CheckAuthSerializer
 from .utils import generate_response_with_cookie
@@ -86,13 +86,14 @@ class CheckAuthView(SCView):
 
         return Response(
             {
-                "message": "Acesso autorizado.",
+                "username": user.username,
+                "role": "employee" if user.is_employee else "client",
             },
             status=status.HTTP_200_OK,
         )
 
 
-class RefreshView(TokenRefreshView):
+class RefreshView(SCView):
     """
     Atualiza os tokens de acesso.
     O token de refresh tem validade para apenas um uso.
@@ -105,14 +106,14 @@ class RefreshView(TokenRefreshView):
         refresh_token = request.COOKIES.get("refresh_token")
 
         if not refresh_token:
-            raise ValidationError("O token de atualização é obrigatório.")
+            raise AuthenticationFailed("O token de atualização é obrigatório.")
 
         try:
             # Revogação do token de atualização anterior.
             prev_token = RefreshToken(refresh_token)
             prev_token.blacklist()
 
-            user = prev_token.user
+            user = User.objects.filter(id=prev_token["user_id"]).first()
             new_refresh_token = RefreshToken.for_user(user)
 
             data = {"message": "Tokens atualizados."}

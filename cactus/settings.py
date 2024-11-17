@@ -44,10 +44,8 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     "AUTH_COOKIE": "access_token",
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),  # 10 minutos para tokens de acesso.
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),  # 10 minutos para tokens de acesso.
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Uma semana para o token de refresh.
-    "BLACKLIST_AFTER_ROTATION": True,  # Envia o token access anterior para BLACKLIST.
-    "ROTATE_REFRESH_TOKENS": True,  # Permite apenas um único uso do token de refresh. # Nome do cookie.
     "AUTH_COOKIE_HTTP_ONLY": False,  # True para produção.
     "AUTH_COOKIE_SECURE": False,  # True para produção.
     "AUTH_COOKIE_SAMESITE": "Lax",  # Strict para produção.
