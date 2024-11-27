@@ -22,7 +22,7 @@ class Description(models.Model):
         related_name="description",
         primary_key=True,
     )
-    illustration_url = models.CharField(max_length=255)
+    illustration_url = models.CharField(max_length=255, null=True)
     title = models.CharField(max_length=50)
     text = models.TextField()
 

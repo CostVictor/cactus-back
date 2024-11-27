@@ -1,5 +1,6 @@
 from cactus.core.serializers import SCSerializer
 from rest_framework import serializers
+from django.db import transaction
 
 from .models import Snack_category, Description, Snack
 
@@ -15,7 +16,7 @@ class SnackSerializer(SCSerializer):
             "path_img",
         ]
 
-    def validate_quantity_in_stock(value):
+    def validate_quantity_in_stock(self, value):
         # O mínimo existente no estoque deve ser 0.
         if value < 0:
             raise serializers.ValidationError(
@@ -24,7 +25,7 @@ class SnackSerializer(SCSerializer):
 
         return value
 
-    def validate_price(value):
+    def validate_price(self, value):
         # Verifica a existência de preços negativos.
         if value <= 0:
             raise serializers.ValidationError(
@@ -33,7 +34,7 @@ class SnackSerializer(SCSerializer):
 
         return value
 
-    def validate_category(value):
+    def validate_category(self, value):
         """Valida a existência de uma categoria com o nome fornecido e a retorna."""
 
         category = Snack_category.objects.filter(name=value)
@@ -47,8 +48,10 @@ class SnackSerializer(SCSerializer):
 
     def create(self, validated_data):
         category = validated_data.pop("category")
+
         new_Snack = Snack(**validated_data)
-        new_Snack.save(category=category.id)
+        new_Snack.category = category.id
+        new_Snack.save()
 
         return new_Snack
 
@@ -91,7 +94,12 @@ class CategorySerializer(SCSerializer):
     def get_description(self, obj):
         """Obtem a descrição da categoria."""
 
-        return DescriptionSerializer(obj.description, remove_field=["category"]).data
+        if hasattr(obj, "description"):
+            return DescriptionSerializer(
+                obj.description, remove_field=["category"]
+            ).data
+
+        return None
 
     def create(self, validated_data):
         """Cria uma nova categoria vazia."""
@@ -100,9 +108,18 @@ class CategorySerializer(SCSerializer):
             deletion_date=None
         ).count()
 
-        new_category = Snack_category(**validated_data)
+        with transaction.atomic():
+            new_category = Snack_category(**validated_data)
 
-        # Salva a categoria nova como última posição.
-        new_category.save(position_order=active_category_count + 1)
+            # Define a categoria como última posição antes de salvar.
+            new_category.position_order = active_category_count + 1
+            new_category.save()
+
+            description = Description(
+                title=f"Venha experimentar nossos {new_category.name}!",
+                text=f"Nossos {new_category.name.lower()} são preparados com ingredientes de qualidade, garantindo um sabor irresistível a cada mordida.",
+                category=new_category,
+            )
+            description.save()
 
         return new_category
