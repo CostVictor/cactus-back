@@ -12,6 +12,8 @@ class RegisterView(APIView):
     throttle_scope = "limited_access"
 
     def post(self, request):
+        """Cria um novo usuário."""
+
         data = request.data
 
         # Valida se o `email` já existe.

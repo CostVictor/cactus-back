@@ -14,6 +14,7 @@ class SnackSerializer(SCSerializer):
             "price",
             "description",
             "path_img",
+            "category",
         ]
 
     def validate_quantity_in_stock(self, value):
@@ -34,26 +35,14 @@ class SnackSerializer(SCSerializer):
 
         return value
 
-    def validate_category(self, value):
-        """Valida a existência de uma categoria com o nome fornecido e a retorna."""
-
-        category = Snack_category.objects.filter(name=value)
-
-        if not category:
-            raise serializers.ValidationError(
-                f'Nenhuma categoria "{value}" foi encontrada.'
-            )
-
-        return category.first()
-
     def create(self, validated_data):
         category = validated_data.pop("category")
 
-        new_Snack = Snack(**validated_data)
-        new_Snack.category = category.id
-        new_Snack.save()
+        new_snack = Snack(**validated_data)
+        new_snack.category = category
+        new_snack.save()
 
-        return new_Snack
+        return new_snack
 
 
 class DescriptionSerializer(SCSerializer):
@@ -89,7 +78,7 @@ class CategorySerializer(SCSerializer):
         """Obtem todos os produtos relacionados à categoria e ordena pelo nome."""
 
         snacks = obj.snacks.all().order_by("name")
-        return SnackSerializer(snacks, many=True).data
+        return SnackSerializer(snacks, many=True, remove_field=["category"]).data
 
     def get_description(self, obj):
         """Obtem a descrição da categoria."""
