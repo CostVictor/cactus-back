@@ -3,7 +3,7 @@ from django.db import models
 
 class Snack_category(models.Model):
     id = models.BigAutoField(primary_key=True)
-    name = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=50)
     position_order = models.IntegerField()
     path_img = models.CharField(max_length=255, blank=True, null=True)
     deletion_date = models.DateTimeField(blank=True, null=True)
@@ -35,8 +35,8 @@ class Description(models.Model):
 
 class Snack(models.Model):
     id = models.BigAutoField(primary_key=True)
-    name = models.CharField(max_length=50, unique=True)
-    quantity_in_stock = models.IntegerField()
+    name = models.CharField(max_length=50)
+    quantity_in_stock = models.IntegerField(default=0)
     price = models.DecimalField(max_digits=4, decimal_places=2)
     description = models.TextField(blank=True, null=True)
     path_img = models.CharField(max_length=255, blank=True, null=True)

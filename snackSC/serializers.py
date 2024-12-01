@@ -17,6 +17,14 @@ class SnackSerializer(SCSerializer):
             "category",
         ]
 
+    def validate_name(self, value):
+        if Snack.objects.filter(name=value, deletion_date__isnull=True):
+            raise serializers.ValidationError(
+                f'O item "{value}" já existe nesta categoria.'
+            )
+
+        return value
+
     def validate_quantity_in_stock(self, value):
         # O mínimo existente no estoque deve ser 0.
         if value < 0:
@@ -36,10 +44,7 @@ class SnackSerializer(SCSerializer):
         return value
 
     def create(self, validated_data):
-        category = validated_data.pop("category")
-
         new_snack = Snack(**validated_data)
-        new_snack.category = category
         new_snack.save()
 
         return new_snack
@@ -75,9 +80,9 @@ class CategorySerializer(SCSerializer):
         model = Snack_category
 
     def get_snacks(self, obj):
-        """Obtem todos os produtos relacionados à categoria e ordena pelo nome."""
+        """Obtem todos os produtos não excluídos relacionados à categoria e ordena pelo nome."""
 
-        snacks = obj.snacks.all().order_by("name")
+        snacks = obj.snacks.filter(deletion_date__isnull=True).order_by("name")
         return SnackSerializer(snacks, many=True, remove_field=["category"]).data
 
     def get_description(self, obj):
@@ -90,11 +95,19 @@ class CategorySerializer(SCSerializer):
 
         return None
 
+    def validate_name(self, value):
+        """Verifica se existe uma categoria ativa com o mesmo nome."""
+
+        if Snack_category.objects.filter(name=value, deletion_date__isnull=True):
+            raise serializers.ValidationError(f'A categoria "{value}" já existe.')
+
+        return value
+
     def create(self, validated_data):
         """Cria uma nova categoria vazia."""
 
         active_category_count = Snack_category.objects.filter(
-            deletion_date=None
+            deletion_date__isnull=True
         ).count()
 
         with transaction.atomic():

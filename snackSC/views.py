@@ -2,13 +2,14 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import status
+from datetime import datetime
 
 from cactus.core.authentication import SCAuthentication
 from cactus.core.view import SCView
 from userSC.models import User
 
 from .models import Snack_category, Snack
-from .serializers import CategorySerializer
+from .serializers import CategorySerializer, SnackSerializer
 
 
 class SnackCategoriesView(SCView):
@@ -16,7 +17,9 @@ class SnackCategoriesView(SCView):
         """Retorna todas as categorias e lanches."""
 
         # Ordena as categorias por `position_order`.
-        categories = Snack_category.objects.all().order_by("position_order")
+        categories = Snack_category.objects.filter(deletion_date__isnull=True).order_by(
+            "position_order"
+        )
         serializer = CategorySerializer(categories, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -30,10 +33,6 @@ class SnackCategoriesView(SCView):
             raise PermissionDenied(
                 "Você não tem autorização para acessar este recurso."
             )
-
-        data = request.data
-        if Snack_category.objects.filter(name=data["name"]):
-            raise ValidationError(f'A categoria "{data["name"]}" já existe.')
 
         serializer = CategorySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -52,7 +51,9 @@ class CategoryView(SCView):
 
         category_name = kwargs.get("category_name")
 
-        query_category = get_object_or_404(Snack_category, name=category_name)
+        query_category = get_object_or_404(
+            Snack_category, name=category_name, deletion_date__isnull=True
+        )
         kwargs["category"] = query_category
 
         return super().dispatch(request, *args, **kwargs)
@@ -62,29 +63,24 @@ class CategoryView(SCView):
 
         return user.is_employee
 
-    def get(self, _, category):
+    def get(self, _, name_category, category):
         """Retorna os dados da categoria e seus lanches."""
 
         serializer = CategorySerializer(category, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def post(self, request, category):
+    def post(self, request, category_name, category):
         """Cria um novo item (Snack) na categoria."""
 
         data = request.data
-        data["category"] = category
+        data["category"] = category.id
 
-        if Snack.objects.filter(name=data["name"]):
-            raise ValidationError(
-                f'O item "{data["name"]}" já existe na categoria {category.name}.'
-            )
-
-        serializer = CategorySerializer(data=data)
+        serializer = SnackSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
         return Response(
-            {"message": f"Item criado com sucesso na categoria {category.name}."},
+            {"message": f"Item criado com sucesso na categoria {category_name}."},
             status=status.HTTP_201_CREATED,
         )
 
@@ -92,11 +88,6 @@ class CategoryView(SCView):
         """Edita os dados da categoria."""
 
         return super().patch(request)
-
-    def delete(self, request):
-        """Apaga a categoria."""
-
-        return super().delete(request)
 
 
 class SnackView(SCView):
