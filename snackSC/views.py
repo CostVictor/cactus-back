@@ -1,14 +1,15 @@
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import status
+from django.db import transaction
 from datetime import datetime
 
 from cactus.core.authentication import SCAuthentication
 from cactus.core.view import SCView
 from userSC.models import User
 
-from .models import Snack_category, Snack
+from .models import Snack_category
 from .serializers import CategorySerializer, SnackSerializer
 
 
@@ -84,10 +85,35 @@ class CategoryView(SCView):
             status=status.HTTP_201_CREATED,
         )
 
-    def patch(self, request):
+    def patch(self, request, category_name, category):
         """Edita os dados da categoria."""
 
-        return super().patch(request)
+        serializer = CategorySerializer(
+            category, data=request.data, partial=True, remove_field=["snacks"]
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            {"message": f"{category_name} editada com sucesso."},
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, _, category_name, category):
+        """Marca a categoria e todos os seus itens como excluídos."""
+
+        with transaction.atomic():
+            snacks = category.snacks.filter(deletion_date__isnull=True).all()
+            now = datetime.now()
+
+            for snack in snacks:
+                snack.deletion_date = now
+                snack.save()
+
+            category.deletion_date = now
+            category.save()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SnackView(SCView):
