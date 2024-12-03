@@ -9,7 +9,7 @@ from cactus.core.authentication import SCAuthentication
 from cactus.core.view import SCView
 from userSC.models import User
 
-from .models import Snack_category
+from .models import Snack_category, Snack
 from .serializers import CategorySerializer, SnackSerializer
 
 
@@ -65,9 +65,9 @@ class CategoryView(SCView):
         return user.is_employee
 
     def get(self, _, name_category, category):
-        """Retorna os dados da categoria e seus lanches."""
+        """Retorna os dados da categoria."""
 
-        serializer = CategorySerializer(category, many=True)
+        serializer = CategorySerializer(category, many=True, remove_field=["snacks"])
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, category_name, category):
@@ -127,4 +127,55 @@ class CategoryView(SCView):
 class SnackView(SCView):
     permission_classes = [SCAuthentication]
 
-    def get(self, request): ...
+    def dispatch(self, request, *args, **kwargs):
+        """Verifica se a categoria e o item existe antes de acessar os endpoints."""
+
+        category_name = kwargs.get("category_name")
+        snack_name = kwargs.get("snack_name")
+
+        query_category = get_object_or_404(
+            Snack_category, name=category_name, deletion_date__isnull=True
+        )
+        query_snack = get_object_or_404(
+            Snack, name=snack_name, category=query_category, deletion_date__isnull=True
+        )
+        kwargs["category"] = query_category
+        kwargs["snack"] = query_snack
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def validate_before_access(self, user: User) -> bool:
+        """Verifica se o usuário tem autorização para acessar os endpoints."""
+
+        return user.is_employee
+
+    def get(self, _, category_name, snack_name, snack):
+        """Retorna os dados do lanche."""
+
+        serializer = SnackSerializer(snack)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, category_name, snack_name, snack):
+        """Edita os dados da categoria."""
+
+        serializer = SnackSerializer(
+            snack, data=request.data, partial=True, remove_field=["category"]
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            {
+                "message": f"O item {snack_name} da categoria {category_name} foi editado com sucesso."
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, _, category_name, snack_name, snack):
+        """Marca o item como excluído."""
+
+        now = datetime.now()
+        snack.deletion_date = now
+        snack.save()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

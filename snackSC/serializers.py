@@ -44,9 +44,7 @@ class SnackSerializer(SCSerializer):
                     "O valor do preço deve ser maior que zero (0)."
                 )
         except:
-            raise serializers.ValidationError(
-                "Por favor, insira um valor válido."
-            )
+            raise serializers.ValidationError("Por favor, insira um valor válido.")
 
         return value
 
@@ -132,3 +130,18 @@ class CategorySerializer(SCSerializer):
             description.save()
 
         return new_category
+
+    def update(self, instance, validated_data):
+        description_data = validated_data.pop("description", None)
+
+        if description_data:
+            serializer = DescriptionSerializer(
+                instance.description,
+                data=description_data,
+                remove_field=["category"],
+                partial=True,
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+        return super().update(instance, validated_data)
