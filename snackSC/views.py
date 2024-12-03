@@ -113,6 +113,14 @@ class CategoryView(SCView):
             category.deletion_date = now
             category.save()
 
+            active_categories = Snack_category.objects.filter(
+                deletion_date__isnull=True
+            ).all()
+
+            for index, category in enumerate(active_categories):
+                category.position_order = index + 1
+                category.save()
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
