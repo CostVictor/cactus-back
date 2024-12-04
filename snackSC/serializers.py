@@ -1,4 +1,5 @@
 from cactus.core.serializers import SCSerializer
+from cactus.utils.validators import price_validator
 from rest_framework import serializers
 from django.db import transaction
 
@@ -35,24 +36,8 @@ class SnackSerializer(SCSerializer):
         return value
 
     def validate_price(self, value):
-        try:
-            float(value)
-
-            # Verifica a existência de preços negativos.
-            if value <= 0:
-                raise serializers.ValidationError(
-                    "O valor do preço deve ser maior que zero (0)."
-                )
-        except:
-            raise serializers.ValidationError("Por favor, insira um valor válido.")
-
+        price_validator(value)
         return value
-
-    def create(self, validated_data):
-        new_snack = Snack(**validated_data)
-        new_snack.save()
-
-        return new_snack
 
 
 class DescriptionSerializer(SCSerializer):

@@ -2,9 +2,10 @@ from django.core.validators import validate_email
 from cactus.core.serializers import SCSerializer
 from django.db import transaction
 from rest_framework import serializers
+import re
+
 from .models import User, User_details
 from .variables import cities
-import re
 
 
 class UserDetailsSerializer(SCSerializer):
@@ -70,7 +71,3 @@ class UserSerializer(SCSerializer):
             details.save(user=user)
 
         return user
-
-    def update(self, instance, validated_data): ...
-
-    def delete(self, validated_data): ...
