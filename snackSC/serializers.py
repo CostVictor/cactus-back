@@ -7,6 +7,14 @@ from .models import Snack_category, Description, Snack
 
 
 class SnackSerializer(SCSerializer):
+    price = serializers.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        error_messages={
+            "invalid": "Por favor, insira um valor numérico válido para o preço."
+        },
+    )
+
     class Meta:
         model = Snack
         fields = [

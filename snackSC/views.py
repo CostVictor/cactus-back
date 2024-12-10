@@ -64,10 +64,10 @@ class CategoryView(SCView):
 
         return user.is_employee
 
-    def get(self, _, name_category, category):
+    def get(self, _, category_name, category):
         """Retorna os dados da categoria."""
 
-        serializer = CategorySerializer(category, many=True, remove_field=["snacks"])
+        serializer = CategorySerializer([category], many=True, remove_field=["snacks"])
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, category_name, category):
@@ -139,7 +139,6 @@ class SnackView(SCView):
         query_snack = get_object_or_404(
             Snack, name=snack_name, category=query_category, deletion_date__isnull=True
         )
-        kwargs["category"] = query_category
         kwargs["snack"] = query_snack
 
         return super().dispatch(request, *args, **kwargs)
