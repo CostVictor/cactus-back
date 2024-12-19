@@ -21,7 +21,9 @@ class SnackCategoriesView(SCView):
         categories = Snack_category.objects.filter(deletion_date__isnull=True).order_by(
             "position_order"
         )
-        serializer = CategorySerializer(categories, many=True)
+        serializer = CategorySerializer(
+            categories, many=True, remove_field=["update_description"]
+        )
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -35,7 +37,9 @@ class SnackCategoriesView(SCView):
                 "Você não tem autorização para acessar este recurso."
             )
 
-        serializer = CategorySerializer(data=request.data)
+        serializer = CategorySerializer(
+            data=request.data, remove_field=["snacks", "update_category"]
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -67,7 +71,9 @@ class CategoryView(SCView):
     def get(self, _, category_name, category):
         """Retorna os dados da categoria."""
 
-        serializer = CategorySerializer([category], many=True, remove_field=["snacks"])
+        serializer = CategorySerializer(
+            [category], many=True, remove_field=["snacks", "update_description"]
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, category_name, category):

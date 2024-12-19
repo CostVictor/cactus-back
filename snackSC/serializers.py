@@ -55,26 +55,15 @@ class DescriptionSerializer(SCSerializer):
         fields = ["title", "text", "illustration_url", "category"]
         model = Description
 
-    def validate(self, attrs):
-        name_category = self.category.lower()
-        title_description = attrs["title"].lower()
-
-        # Verifica se no título da descrição não possui o nome da categoria e retorna erro.
-        if name_category not in title_description:
-            raise serializers.ValidationError(
-                "O título da descrição deve incluir o nome da categoria."
-            )
-
-        return attrs
-
 
 class CategorySerializer(SCSerializer):
     # Obtem todos os produtos relacionados à categoria.
     snacks = serializers.SerializerMethodField()
     description = serializers.SerializerMethodField()
+    update_description = serializers.JSONField()
 
     class Meta:
-        fields = ["name", "path_img", "snacks", "description"]
+        fields = ["name", "path_img", "snacks", "description", "update_description"]
         model = Snack_category
 
     def get_snacks(self, obj):
@@ -125,13 +114,12 @@ class CategorySerializer(SCSerializer):
         return new_category
 
     def update(self, instance, validated_data):
-        description_data = validated_data.pop("description", None)
+        description_data = validated_data.pop("update_description", None)
 
         if description_data:
             serializer = DescriptionSerializer(
                 instance.description,
                 data=description_data,
-                remove_field=["category"],
                 partial=True,
             )
             serializer.is_valid(raise_exception=True)
