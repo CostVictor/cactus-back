@@ -17,7 +17,7 @@ class LoginSerializer(serializers.Serializer):
         if user is None or not user.check_password(password):
             # Retorna erro caso o usuário não exista ou se a senha estiver incorreta.
             raise AuthenticationFailed(
-                "Credenciais inválidas. Por favor, tente novamente.",
+                "Credenciais inválidas. Por favor, tente novamente."
             )
 
         attrs["user"] = user

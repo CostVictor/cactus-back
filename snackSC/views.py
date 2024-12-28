@@ -38,7 +38,7 @@ class SnackCategoriesView(SCView):
             )
 
         serializer = CategorySerializer(
-            data=request.data, remove_field=["snacks", "update_category"]
+            data=request.data, remove_field=["snacks", "update_description"]
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -68,7 +68,7 @@ class CategoryView(SCView):
 
         return user.is_employee
 
-    def get(self, _, category_name, category):
+    def get(self, _, _category_name, category):
         """Retorna os dados da categoria."""
 
         serializer = CategorySerializer(
@@ -105,7 +105,7 @@ class CategoryView(SCView):
             status=status.HTTP_200_OK,
         )
 
-    def delete(self, _, category_name, category):
+    def delete(self, _, _category_name, category):
         """Marca a categoria e todos os seus itens como excluídos."""
 
         with transaction.atomic():
@@ -154,7 +154,7 @@ class SnackView(SCView):
 
         return user.is_employee
 
-    def get(self, _, category_name, snack_name, snack):
+    def get(self, _, _category_name, _snack_name, snack):
         """Retorna os dados do lanche."""
 
         serializer = SnackSerializer(snack)
@@ -176,7 +176,7 @@ class SnackView(SCView):
             status=status.HTTP_200_OK,
         )
 
-    def delete(self, _, category_name, snack_name, snack):
+    def delete(self, _, _category_name, _snack_name, snack):
         """Marca o item como excluído."""
 
         now = datetime.now()

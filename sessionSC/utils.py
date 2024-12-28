@@ -12,7 +12,7 @@ def generate_response_with_cookie(
 
     # ~ Criação da response com cookies.
     response = Response(data, status=status)
-    max_age = timedelta(days=days_long).total_seconds()
+    max_age = int(timedelta(days=days_long).total_seconds())
 
     response.set_cookie(
         key="refresh_token",
