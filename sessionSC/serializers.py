@@ -2,8 +2,6 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import serializers
 from userSC.models import User
 
-from .variables import restrictions
-
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.CharField()
@@ -21,21 +19,4 @@ class LoginSerializer(serializers.Serializer):
             )
 
         attrs["user"] = user
-        return attrs
-
-
-class CheckAuthSerializer(serializers.Serializer):
-    restriction = serializers.CharField(max_length=8)
-
-    def validate(self, attrs):
-        restriction = attrs.get("restriction")
-
-        if not restriction:
-            raise serializers.ValidationError(
-                "O nível de restrição do acesso é obrigatório."
-            )
-
-        if restriction not in restrictions:
-            raise serializers.ValidationError("A restrição fornecida não é válida.")
-
         return attrs
