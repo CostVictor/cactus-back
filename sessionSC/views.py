@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from cactus.core.view import SCView
-from cactus.core.authentication import SCAuthentication
+from cactus.core.authentication import SCAuthenticationHttp
 from userSC.models import User
 
 from .serializers import LoginSerializer
@@ -43,7 +43,7 @@ class LoginView(SCView):
 
 
 class LogoutView(SCView):
-    permission_classes = [SCAuthentication]
+    permission_classes = [SCAuthenticationHttp]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "limited_access"
 
@@ -75,8 +75,8 @@ class RefreshView(SCView):
     O token de refresh tem validade para apenas um uso.
     """
 
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "limited_access"
+    # throttle_classes = [ScopedRateThrottle]
+    # throttle_scope = "limited_access"
 
     def post(self, request) -> Response:
         refresh_token = request.COOKIES.get("refresh_token")

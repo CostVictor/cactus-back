@@ -7,7 +7,7 @@ from .view import SCView
 from userSC.models import User
 
 
-class SCAuthentication(JWTAuthentication):
+class SCAuthenticationHttp(JWTAuthentication):
     """Autenticação de usuário do sistema cactus através de JWT em Cookies HttpOnly."""
 
     def authenticate(self, request) -> tuple[User, AccessToken]:
@@ -17,14 +17,14 @@ class SCAuthentication(JWTAuthentication):
         token = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE"])
 
         if token is None:
-            raise AuthenticationFailed("Acesso negado: token não encontrado.")
+            raise AuthenticationFailed("O token não foi encontrado.")
 
         try:
             validated_token = AccessToken(token)
             return self.get_user(validated_token), validated_token
 
         except:
-            raise AuthenticationFailed(f"Acesso negado: O token é inválido ou expirou.")
+            raise AuthenticationFailed("O token é inválido ou expirou.")
 
     def has_permission(self, request, view):
         """Retorna se o usuário possui permição para acessar a view."""
@@ -55,8 +55,6 @@ class SCAuthentication(JWTAuthentication):
                 validated_for_method = method_current(user)
 
             if not validated_all or not validated_for_method:
-                raise PermissionDenied(
-                    f"Você não tem autorização para acessar este recurso."
-                )
+                raise PermissionDenied("Usuário não autorizado.")
 
         return True

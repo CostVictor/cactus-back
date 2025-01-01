@@ -1,11 +1,14 @@
 from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from rest_framework import status
 from django.db import transaction
 from datetime import datetime
 
-from cactus.core.authentication import SCAuthentication
+from cactus.core.authentication import SCAuthenticationHttp
+from cactus.utils.formatters import format_price
 from cactus.core.view import SCView
 from userSC.models import User
 
@@ -31,7 +34,7 @@ class SnackCategoriesView(SCView):
         """Cria uma nova categoria."""
 
         # Verificando se o usuário está autenticado e possui autorização.
-        user, _ = SCAuthentication().authenticate(request)
+        user, _ = SCAuthenticationHttp().authenticate(request)
         if not user.is_employee:
             raise PermissionDenied(
                 "Você não tem autorização para acessar este recurso."
@@ -43,13 +46,19 @@ class SnackCategoriesView(SCView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
+        # Notifica todos os clientes websocket sobre a nova categoria no estoque de lanches.
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "snacks_group", {"type": "snacks_update"}
+        )
+
         return Response(
             {"message": "Categoria criada com sucesso."}, status=status.HTTP_201_CREATED
         )
 
 
 class CategoryView(SCView):
-    permission_classes = [SCAuthentication]
+    permission_classes = [SCAuthenticationHttp]
 
     def dispatch(self, request, *args, **kwargs):
         """Verifica se a categoria existe antes de acessar os endpoints."""
@@ -80,11 +89,18 @@ class CategoryView(SCView):
         """Cria um novo item (Snack) na categoria."""
 
         data = request.data
+        data["price"] = format_price(data["price"], to_float=True)
         data["category"] = category.id
 
         serializer = SnackSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        # Notifica todos os clientes websocket sobre o novo item no estoque de lanches.
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "snacks_group", {"type": "snacks_update"}
+        )
 
         return Response(
             {"message": f"Item criado com sucesso na categoria {category_name}."},
@@ -99,6 +115,12 @@ class CategoryView(SCView):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        # Notifica todos os clientes websocket sobre a edição da categoria no estoque de lanches.
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "snacks_group", {"type": "snacks_update"}
+        )
 
         return Response(
             {"message": f"{category_name} editada com sucesso."},
@@ -127,11 +149,17 @@ class CategoryView(SCView):
                 category.position_order = index + 1
                 category.save()
 
+        # Notifica todos os clientes websocket sobre a exclusão da categoria no estoque de lanches.
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "snacks_group", {"type": "snacks_update"}
+        )
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SnackView(SCView):
-    permission_classes = [SCAuthentication]
+    permission_classes = [SCAuthenticationHttp]
 
     def dispatch(self, request, *args, **kwargs):
         """Verifica se a categoria e o item existe antes de acessar os endpoints."""
@@ -161,13 +189,19 @@ class SnackView(SCView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def patch(self, request, category_name, snack_name, snack):
-        """Edita os dados da categoria."""
+        """Edita os dados do lanche."""
 
         serializer = SnackSerializer(
             snack, data=request.data, partial=True, remove_field=["category"]
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        # Notifica todos os clientes websocket sobre a edição do lanche no estoque de lanches.
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "snacks_group", {"type": "snacks_update"}
+        )
 
         return Response(
             {
@@ -182,5 +216,11 @@ class SnackView(SCView):
         now = datetime.now()
         snack.deletion_date = now
         snack.save()
+
+        # Notifica todos os clientes websocket sobre a exclusão do lanche no estoque de lanches.
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "snacks_group", {"type": "snacks_update"}
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)

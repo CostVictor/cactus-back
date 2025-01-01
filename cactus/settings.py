@@ -55,18 +55,21 @@ SIMPLE_JWT = {
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "channels",
     "corsheaders",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
     "sessionSC",
     "userSC",
     "snackSC",
+    "lunchSC",
 ]
 
 
@@ -101,7 +104,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "cactus.wsgi.application"
-
+ASGI_APPLICATION = "cactus.asgi.application"
 
 DATABASES = {
     "default": {
@@ -114,6 +117,11 @@ DATABASES = {
     }
 }
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {

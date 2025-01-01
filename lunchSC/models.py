@@ -38,14 +38,13 @@ class Ingredient(models.Model):
 
 
 class Composition(models.Model):
-    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, primary_key=True)
-    ingredient = models.ForeignKey(
-        Ingredient, on_delete=models.CASCADE, primary_key=True
-    )
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     config_choice_number = models.IntegerField()
 
     class Meta:
         db_table = "SC_Composition"
+        unique_together = ("dish", "ingredient")
 
     def __str__(self):
         return f"Composição - {days_week[self.dish.day]} / {self.ingredient.name}"

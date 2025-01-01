@@ -1,12 +1,14 @@
 from cactus.core.serializers import SCSerializer
-from cactus.utils.validators import price_validator
 from rest_framework import serializers
 from django.db import transaction
 
+from cactus.utils.formatters import format_price
 from .models import Snack_category, Description, Snack
 
 
 class SnackSerializer(SCSerializer):
+    price = serializers.SerializerMethodField()
+    
     class Meta:
         model = Snack
         fields = [
@@ -27,6 +29,9 @@ class SnackSerializer(SCSerializer):
             },
         }
 
+    def get_price(self, obj):
+        return format_price(obj.price)
+
     def validate_name(self, value):
         if Snack.objects.filter(name=value, deletion_date__isnull=True):
             raise serializers.ValidationError(
@@ -42,10 +47,6 @@ class SnackSerializer(SCSerializer):
                 "A quantidade no estoque não pode ser menor que zero (0)."
             )
 
-        return value
-
-    def validate_price(self, value):
-        price_validator(value)
         return value
 
 
