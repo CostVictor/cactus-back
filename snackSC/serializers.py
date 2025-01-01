@@ -2,10 +2,13 @@ from cactus.core.serializers import SCSerializer
 from rest_framework import serializers
 from django.db import transaction
 
+from cactus.utils.formatters import format_price
 from .models import Snack_category, Description, Snack
 
 
 class SnackSerializer(SCSerializer):
+    price = serializers.SerializerMethodField()
+    
     class Meta:
         model = Snack
         fields = [
@@ -16,6 +19,18 @@ class SnackSerializer(SCSerializer):
             "path_img",
             "category",
         ]
+
+        extra_kwargs = {
+            "price": {
+                "error_messages": {
+                    "invalid": "Por favor, insira um valor numérico válido para o preço.",
+                    "max_digits": "O preço não pode ter mais de 4 dígitos.",
+                }
+            },
+        }
+
+    def get_price(self, obj):
+        return format_price(obj.price)
 
     def validate_name(self, value):
         if Snack.objects.filter(name=value, deletion_date__isnull=True):
@@ -34,26 +49,6 @@ class SnackSerializer(SCSerializer):
 
         return value
 
-    def validate_price(self, value):
-        try:
-            float(value)
-
-            # Verifica a existência de preços negativos.
-            if value <= 0:
-                raise serializers.ValidationError(
-                    "O valor do preço deve ser maior que zero (0)."
-                )
-        except:
-            raise serializers.ValidationError("Por favor, insira um valor válido.")
-
-        return value
-
-    def create(self, validated_data):
-        new_snack = Snack(**validated_data)
-        new_snack.save()
-
-        return new_snack
-
 
 class DescriptionSerializer(SCSerializer):
     category = serializers.CharField(source="category.name")
@@ -62,26 +57,15 @@ class DescriptionSerializer(SCSerializer):
         fields = ["title", "text", "illustration_url", "category"]
         model = Description
 
-    def validate(self, attrs):
-        name_category = self.category.lower()
-        title_description = attrs["title"].lower()
-
-        # Verifica se no título da descrição não possui o nome da categoria e retorna erro.
-        if name_category not in title_description:
-            raise serializers.ValidationError(
-                "O título da descrição deve incluir o nome da categoria."
-            )
-
-        return attrs
-
 
 class CategorySerializer(SCSerializer):
     # Obtem todos os produtos relacionados à categoria.
     snacks = serializers.SerializerMethodField()
     description = serializers.SerializerMethodField()
+    update_description = serializers.JSONField()
 
     class Meta:
-        fields = ["name", "path_img", "snacks", "description"]
+        fields = ["name", "path_img", "snacks", "description", "update_description"]
         model = Snack_category
 
     def get_snacks(self, obj):
@@ -132,13 +116,12 @@ class CategorySerializer(SCSerializer):
         return new_category
 
     def update(self, instance, validated_data):
-        description_data = validated_data.pop("description", None)
+        description_data = validated_data.pop("update_description", None)
 
         if description_data:
             serializer = DescriptionSerializer(
                 instance.description,
                 data=description_data,
-                remove_field=["category"],
                 partial=True,
             )
             serializer.is_valid(raise_exception=True)
