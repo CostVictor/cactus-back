@@ -75,8 +75,8 @@ class RefreshView(SCView):
     O token de refresh tem validade para apenas um uso.
     """
 
-    # throttle_classes = [ScopedRateThrottle]
-    # throttle_scope = "limited_access"
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "limited_access"
 
     def post(self, request) -> Response:
         refresh_token = request.COOKIES.get("refresh_token")

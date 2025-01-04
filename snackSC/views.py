@@ -1,11 +1,12 @@
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404
+from rest_framework.request import Request
 from rest_framework.response import Response
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from rest_framework import status
 from django.db import transaction
-from datetime import datetime
+from django.utils import timezone
 
 from cactus.core.authentication import SCAuthenticationHttp
 from cactus.utils.formatters import format_price
@@ -25,7 +26,9 @@ class SnackCategoriesView(SCView):
             "position_order"
         )
         serializer = CategorySerializer(
-            categories, many=True, remove_field=["update_description"]
+            categories,
+            many=True,
+            remove_field=["update_description"],
         )
 
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -36,12 +39,11 @@ class SnackCategoriesView(SCView):
         # Verificando se o usuário está autenticado e possui autorização.
         user, _ = SCAuthenticationHttp().authenticate(request)
         if not user.is_employee:
-            raise PermissionDenied(
-                "Você não tem autorização para acessar este recurso."
-            )
+            raise PermissionDenied("Usuário não autorizado.")
 
         serializer = CategorySerializer(
-            data=request.data, remove_field=["snacks", "update_description"]
+            data=request.data,
+            remove_field=["snacks", "update_description"],
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -55,6 +57,39 @@ class SnackCategoriesView(SCView):
         return Response(
             {"message": "Categoria criada com sucesso."}, status=status.HTTP_201_CREATED
         )
+
+    def patch(self, request: Request) -> Response:
+        """Edita a posição das categorias."""
+
+        # Verificando se o usuário está autenticado e possui autorização.
+        user, _ = SCAuthenticationHttp().authenticate(request)
+        if not user.is_employee:
+            raise PermissionDenied("Usuário não autorizado.")
+
+        new_order = request.data.get("update_position_order", None)
+        if new_order:
+            with transaction.atomic():
+                for index, name in enumerate(new_order):
+                    category = Snack_category.objects.filter(
+                        deletion_date__isnull=True,
+                        name=name,
+                    ).first()
+                    if category:
+                        category.position_order = index + 1
+                        category.save()
+
+            # Notifica todos os clientes websocket sobre a edição da posição das categorias.
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "snacks_group", {"type": "snacks_update"}
+            )
+
+            return Response(
+                {"message": "Posição das categorias atualizada com sucesso."},
+                status=status.HTTP_200_OK,
+            )
+
+        raise ValidationError('O campo "update_position_order" é obrigatório.')
 
 
 class CategoryView(SCView):
@@ -77,11 +112,13 @@ class CategoryView(SCView):
 
         return user.is_employee
 
-    def get(self, _, _category_name, category):
+    def get(self, _, category_name, category):
         """Retorna os dados da categoria."""
 
         serializer = CategorySerializer(
-            [category], many=True, remove_field=["snacks", "update_description"]
+            [category],
+            many=True,
+            remove_field=["snacks", "update_description"],
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -89,7 +126,7 @@ class CategoryView(SCView):
         """Cria um novo item (Snack) na categoria."""
 
         data = request.data
-        data["price"] = format_price(data["price"], to_float=True)
+        data["price"] = format_price(data.get("price", 1), to_float=True)
         data["category"] = category.id
 
         serializer = SnackSerializer(data=data)
@@ -111,7 +148,10 @@ class CategoryView(SCView):
         """Edita os dados da categoria."""
 
         serializer = CategorySerializer(
-            category, data=request.data, partial=True, remove_field=["snacks"]
+            category,
+            data=request.data,
+            partial=True,
+            remove_field=["snacks"],
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -127,18 +167,11 @@ class CategoryView(SCView):
             status=status.HTTP_200_OK,
         )
 
-    def delete(self, _, _category_name, category):
-        """Marca a categoria e todos os seus itens como excluídos."""
+    def delete(self, _, category_name, category):
+        """Marca a categoria como excluída."""
 
         with transaction.atomic():
-            snacks = category.snacks.filter(deletion_date__isnull=True).all()
-            now = datetime.now()
-
-            for snack in snacks:
-                snack.deletion_date = now
-                snack.save()
-
-            category.deletion_date = now
+            category.deletion_date = timezone.now()
             category.save()
 
             active_categories = Snack_category.objects.filter(
@@ -182,7 +215,7 @@ class SnackView(SCView):
 
         return user.is_employee
 
-    def get(self, _, _category_name, _snack_name, snack):
+    def get(self, _, category_name, snack_name, snack):
         """Retorna os dados do lanche."""
 
         serializer = SnackSerializer(snack)
@@ -191,8 +224,12 @@ class SnackView(SCView):
     def patch(self, request, category_name, snack_name, snack):
         """Edita os dados do lanche."""
 
+        data = request.data
+        if data.get("price", None):
+            data["price"] = format_price(data["price"], to_float=True)
+
         serializer = SnackSerializer(
-            snack, data=request.data, partial=True, remove_field=["category"]
+            snack, data=data, partial=True, remove_field=["category"]
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -210,11 +247,10 @@ class SnackView(SCView):
             status=status.HTTP_200_OK,
         )
 
-    def delete(self, _, _category_name, _snack_name, snack):
+    def delete(self, _, category_name, snack_name, snack):
         """Marca o item como excluído."""
 
-        now = datetime.now()
-        snack.deletion_date = now
+        snack.deletion_date = timezone.now()
         snack.save()
 
         # Notifica todos os clientes websocket sobre a exclusão do lanche no estoque de lanches.
