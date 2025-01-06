@@ -20,6 +20,6 @@ def format_price(value, to_float=False):
         try:
             return float(newValue)
         except:
-            raise ValidationError("O valor fornecido não é um número válido.")
+            raise ValidationError("O valor fornecido não é válido.")
 
     return f"R$ {value:.2f}".replace(".", ",")

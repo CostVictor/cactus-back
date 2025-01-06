@@ -1,5 +1,5 @@
 from cactus.core.serializers import SCSerializer
-from cactus.utils.validators import price_validator
+from cactus.utils.formatters import format_price
 from rest_framework import serializers
 
 from .models import Dish, Ingredient, Composition
@@ -8,6 +8,7 @@ from .variables import days_week
 
 class DishSerializer(SCSerializer):
     day_name = serializers.SerializerMethodField()
+    ingredients = serializers.SerializerMethodField()
 
     class Meta:
         fields = [
@@ -17,6 +18,7 @@ class DishSerializer(SCSerializer):
             "deadline",
             "description",
             "path_img",
+            "ingredients",
         ]
         model = Dish
 
@@ -25,9 +27,43 @@ class DishSerializer(SCSerializer):
 
         return days_week[obj.day]
 
-    def validate_price(self, value):
-        price_validator(value)
-        return value
+    def get_ingredients(self, obj):
+        """Retorna os ingredientes do prato, separados por escolha única e múltipla."""
+
+        ingredients = {"multiple_choice": []}
+
+        # Obtém as composições do prato que não foram deletadas.
+        compositions = Composition.objects.filter(
+            dish=obj, ingredient__deletion_date__isnull=True
+        )
+
+        # Serializa as composições.
+        compositions_serialize = CompositionSerializer(
+            compositions, many=True, remove_fields=["dish"]
+        )
+
+        for composition in compositions_serialize:
+            choice_number = composition.config_choice_number
+            ingredient = composition.ingredient
+
+            if choice_number:
+                if "single_choice" not in ingredients:
+                    ingredients["single_choice"] = {}
+
+                if choice_number not in ingredients["single_choice"]:
+                    ingredients["single_choice"][choice_number] = []
+
+                ingredients["single_choice"][choice_number].append(ingredient)
+
+            else:
+                ingredients["multiple_choice"].append(ingredient)
+
+        return ingredients
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["price"] = format_price(float(representation["price"]))
+        return representation
 
 
 class IngredientSerializer(SCSerializer):
@@ -43,35 +79,14 @@ class IngredientSerializer(SCSerializer):
 
         return value
 
-    def validate_additional_charge(self, value):
-        """Verifica se o valor adicional é menor que 0."""
-
-        try:
-            float(value)
-
-            # Verifica a existência de preços negativos.
-            if value < 0:
-                raise serializers.ValidationError(
-                    "O valor do preço adicional deve ser, no mínimo, zero (0)."
-                )
-        except:
-            raise serializers.ValidationError("Por favor, insira um valor válido.")
-
-        return value
-
 
 class CompositionSerializer(SCSerializer):
-    dish = serializers.SerializerMethodField()
+    dish = DishSerializer()
     ingredient = IngredientSerializer()
 
     class Meta:
         fields = ["config_choice_number", "dish", "ingredient"]
         model = Composition
-
-    def get_dish(self, obj):
-        """Obtem o nome do dia da semana."""
-
-        return days_week[obj.day]
 
     def validate_config_choice_number(self, value):
         try:
@@ -86,23 +101,3 @@ class CompositionSerializer(SCSerializer):
             raise serializers.ValidationError("Por favor, insira um número válido.")
 
         return value
-
-    def validate_dish(self, value):
-        query_dish = Dish.objects.filter(day=value)
-
-        if not query_dish:
-            raise serializers.ValidationError(
-                f'Não possível encontrar um dia da semana correspondente a "{value}".'
-            )
-
-        return query_dish
-
-    def validate_ingredient(self, value):
-        query_ingredient = Ingredient.objects.filter(name=value)
-
-        if not query_ingredient:
-            raise serializers.ValidationError(
-                f'Nenhum ingrediente "{value}" foi encontrado.'
-            )
-
-        return query_ingredient
