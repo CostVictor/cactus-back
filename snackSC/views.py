@@ -2,13 +2,12 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404
 from rest_framework.request import Request
 from rest_framework.response import Response
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 from rest_framework import status
 from django.db import transaction
 from django.utils import timezone
 
 from cactus.core.authentication import SCAuthenticationHttp
+from cactus.utils.message import dispatch_message_websocket
 from cactus.utils.formatters import format_price
 from cactus.core.view import SCView
 from userSC.models import User
@@ -49,10 +48,7 @@ class SnackCategoriesView(SCView):
         serializer.save()
 
         # Notifica todos os clientes websocket sobre a nova categoria no estoque de lanches.
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            "snacks_group", {"type": "snacks_update"}
-        )
+        dispatch_message_websocket("snacks_group", "snacks_update")
 
         return Response(
             {"message": "Categoria criada com sucesso."}, status=status.HTTP_201_CREATED
@@ -79,10 +75,7 @@ class SnackCategoriesView(SCView):
                         category.save()
 
             # Notifica todos os clientes websocket sobre a edição da posição das categorias.
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                "snacks_group", {"type": "snacks_update"}
-            )
+            dispatch_message_websocket("snacks_group", "snacks_update")
 
             return Response(
                 {"message": "Posição das categorias atualizada com sucesso."},
@@ -134,10 +127,7 @@ class CategoryView(SCView):
         serializer.save()
 
         # Notifica todos os clientes websocket sobre o novo item no estoque de lanches.
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            "snacks_group", {"type": "snacks_update"}
-        )
+        dispatch_message_websocket("snacks_group", "snacks_update")
 
         return Response(
             {"message": f"Item criado com sucesso na categoria {category_name}."},
@@ -157,10 +147,7 @@ class CategoryView(SCView):
         serializer.save()
 
         # Notifica todos os clientes websocket sobre a edição da categoria no estoque de lanches.
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            "snacks_group", {"type": "snacks_update"}
-        )
+        dispatch_message_websocket("snacks_group", "snacks_update")
 
         return Response(
             {"message": f"{category_name} editada com sucesso."},
@@ -183,10 +170,7 @@ class CategoryView(SCView):
                 category.save()
 
         # Notifica todos os clientes websocket sobre a exclusão da categoria no estoque de lanches.
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            "snacks_group", {"type": "snacks_update"}
-        )
+        dispatch_message_websocket("snacks_group", "snacks_update")
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -235,10 +219,7 @@ class SnackView(SCView):
         serializer.save()
 
         # Notifica todos os clientes websocket sobre a edição do lanche no estoque de lanches.
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            "snacks_group", {"type": "snacks_update"}
-        )
+        dispatch_message_websocket("snacks_group", "snacks_update")
 
         return Response(
             {
@@ -254,9 +235,6 @@ class SnackView(SCView):
         snack.save()
 
         # Notifica todos os clientes websocket sobre a exclusão do lanche no estoque de lanches.
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            "snacks_group", {"type": "snacks_update"}
-        )
+        dispatch_message_websocket("snacks_group", "snacks_update")
 
         return Response(status=status.HTTP_204_NO_CONTENT)

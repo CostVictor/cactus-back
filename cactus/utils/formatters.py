@@ -18,7 +18,13 @@ def format_price(value, to_float=False):
     if to_float:
         newValue = value.replace("R$", "").replace(",", ".")
         try:
-            return float(newValue)
+            value = float(newValue)
+            if value < 0:
+                raise ValidationError(
+                    "O valor fornecido deve ser no mínimo zero (R$ 0,00)."
+                )
+
+            return value
         except:
             raise ValidationError("O valor fornecido não é válido.")
 

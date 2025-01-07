@@ -27,6 +27,14 @@ class DishSerializer(SCSerializer):
 
         return days_week[obj.day]
 
+    def validate_price(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "O preço do prato deve ser maior que zero (R$ 0,00)."
+            )
+
+        return value
+
     def get_ingredients(self, obj):
         """Retorna os ingredientes do prato, separados por escolha única e múltipla."""
 
@@ -79,6 +87,13 @@ class IngredientSerializer(SCSerializer):
 
         return value
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        additional_charge = representation["additional_charge"]
+        if additional_charge:
+            representation["additional_charge"] = format_price(float(additional_charge))
+        return representation
+
 
 class CompositionSerializer(SCSerializer):
     dish = DishSerializer()
@@ -98,6 +113,8 @@ class CompositionSerializer(SCSerializer):
                     "O número de escolha única do item tem que ser maior ou igual a zero (0)."
                 )
         except:
-            raise serializers.ValidationError("Por favor, insira um número válido.")
+            raise serializers.ValidationError(
+                "Por favor, insira um valor válido para o número de escolha única."
+            )
 
         return value

@@ -1,5 +1,11 @@
 from django.urls import path
-from .views import LunchWeekView, DishView, IngredientsView, CompositionView
+from .views import (
+    LunchWeekView,
+    DishView,
+    IngredientsView,
+    IngredientView,
+    CompositionView,
+)
 
 urlpatterns = [
     path("", LunchWeekView.as_view(), name="lunch_week"),
@@ -9,9 +15,10 @@ urlpatterns = [
         CompositionView.as_view(),
         name="composition",
     ),
+    path("ingredients/", IngredientsView.as_view(), name="ingredients"),
     path(
-        "ingredient/<str:ingredient_name>/",
-        IngredientsView.as_view(),
+        "ingredients/<str:ingredient_name>/",
+        IngredientView.as_view(),
         name="ingredient",
     ),
 ]

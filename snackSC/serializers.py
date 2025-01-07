@@ -44,6 +44,14 @@ class SnackSerializer(SCSerializer):
 
         return value
 
+    def validate_price(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "O preço do item deve ser maior que zero (R$ 0,00)."
+            )
+
+        return value
+
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation["price"] = format_price(float(representation["price"]))

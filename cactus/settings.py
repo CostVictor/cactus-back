@@ -20,13 +20,7 @@ CORS_ALLOW_ALL_ORIGINS = False  # False para produção.
 # Para restringir solicitações a dominios específicos.
 CORS_ALLOWED_ORIGINS = ("http://192.168.3.102:3000",)
 
-CORS_ALLOW_METHODS = (
-    "DELETE",
-    "GET",
-    "PATCH",
-    "POST",
-    "PUT",
-)
+CORS_ALLOW_METHODS = ("DELETE", "GET", "PATCH", "POST")
 
 
 REST_FRAMEWORK = {
