@@ -4,13 +4,13 @@ from django.db import transaction
 from rest_framework import serializers
 import re
 
-from .models import User, User_details
+from .models import User, UserDetails
 from .variables import cities
 
 
 class UserDetailsSerializer(SCSerializer):
     class Meta:
-        model = User_details
+        model = UserDetails
         fields = ["tel", "city", "state", "path_img_profile"]
 
     def validate_tel(self, value):

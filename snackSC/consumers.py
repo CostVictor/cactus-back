@@ -1,7 +1,7 @@
 from channels.db import database_sync_to_async
 from cactus.core.consumers import SCWebsocketConsumer
 
-from .models import Snack_category
+from .models import SnackCategory
 from .serializers import CategorySerializer
 
 
@@ -45,7 +45,7 @@ class SnacksConsumer(SCWebsocketConsumer):
             list: Lista serializada de categorias e seus lanches associados.
         """
 
-        categories = Snack_category.objects.filter(deletion_date__isnull=True).order_by(
+        categories = SnackCategory.objects.filter(deletion_date__isnull=True).order_by(
             "position_order"
         )
         serializer = CategorySerializer(

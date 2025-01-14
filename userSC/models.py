@@ -44,7 +44,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.username
 
 
-class User_details(models.Model):
+class UserDetails(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     tel = models.CharField(max_length=15)
     city = models.CharField(max_length=50)

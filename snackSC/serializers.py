@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.db import transaction
 
 from cactus.utils.formatters import format_price
-from .models import Snack_category, Description, Snack
+from .models import SnackCategory, Description, Snack
 
 
 class SnackSerializer(SCSerializer):
@@ -80,7 +80,7 @@ class CategorySerializer(SCSerializer):
             "description",
             "update_description",
         ]
-        model = Snack_category
+        model = SnackCategory
 
     def get_snacks(self, obj):
         """Obtem todos os produtos não excluídos relacionados à categoria e ordena pelo nome."""
@@ -101,7 +101,7 @@ class CategorySerializer(SCSerializer):
     def validate_name(self, value):
         """Verifica se existe uma categoria ativa com o mesmo nome."""
 
-        if Snack_category.objects.filter(name=value, deletion_date__isnull=True):
+        if SnackCategory.objects.filter(name=value, deletion_date__isnull=True):
             raise serializers.ValidationError(f'A categoria "{value}" já existe.')
 
         return value
@@ -109,12 +109,12 @@ class CategorySerializer(SCSerializer):
     def create(self, validated_data):
         """Cria uma nova categoria vazia."""
 
-        active_category_count = Snack_category.objects.filter(
+        active_category_count = SnackCategory.objects.filter(
             deletion_date__isnull=True
         ).count()
 
         with transaction.atomic():
-            new_category = Snack_category(**validated_data)
+            new_category = SnackCategory(**validated_data)
 
             # Define a categoria como última posição antes de salvar.
             new_category.position_order = active_category_count + 1

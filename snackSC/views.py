@@ -12,7 +12,7 @@ from cactus.utils.formatters import format_price
 from cactus.core.view import SCView
 from userSC.models import User
 
-from .models import Snack_category, Snack
+from .models import SnackCategory, Snack
 from .serializers import CategorySerializer, SnackSerializer
 
 
@@ -21,7 +21,7 @@ class SnackCategoriesView(SCView):
         """Retorna todas as categorias e lanches."""
 
         # Ordena as categorias por `position_order`.
-        categories = Snack_category.objects.filter(deletion_date__isnull=True).order_by(
+        categories = SnackCategory.objects.filter(deletion_date__isnull=True).order_by(
             "position_order"
         )
         serializer = CategorySerializer(
@@ -66,7 +66,7 @@ class SnackCategoriesView(SCView):
         if new_order:
             with transaction.atomic():
                 for index, name in enumerate(new_order):
-                    category = Snack_category.objects.filter(
+                    category = SnackCategory.objects.filter(
                         deletion_date__isnull=True,
                         name=name,
                     ).first()
@@ -94,7 +94,7 @@ class CategoryView(SCView):
         category_name = kwargs.get("category_name")
 
         query_category = get_object_or_404(
-            Snack_category, name=category_name, deletion_date__isnull=True
+            SnackCategory, name=category_name, deletion_date__isnull=True
         )
         kwargs["category"] = query_category
 
@@ -161,7 +161,7 @@ class CategoryView(SCView):
             category.deletion_date = timezone.now()
             category.save()
 
-            active_categories = Snack_category.objects.filter(
+            active_categories = SnackCategory.objects.filter(
                 deletion_date__isnull=True
             ).all()
 
@@ -185,7 +185,7 @@ class SnackView(SCView):
         snack_name = kwargs.get("snack_name")
 
         query_category = get_object_or_404(
-            Snack_category, name=category_name, deletion_date__isnull=True
+            SnackCategory, name=category_name, deletion_date__isnull=True
         )
         query_snack = get_object_or_404(
             Snack, name=snack_name, category=query_category, deletion_date__isnull=True

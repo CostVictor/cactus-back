@@ -1,7 +1,7 @@
 from django.db import models
 
 
-class Snack_category(models.Model):
+class SnackCategory(models.Model):
     id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=50)
     position_order = models.IntegerField()
@@ -17,7 +17,7 @@ class Snack_category(models.Model):
 
 class Description(models.Model):
     category = models.OneToOneField(
-        Snack_category,
+        SnackCategory,
         on_delete=models.CASCADE,
         related_name="description",
         primary_key=True,
@@ -42,7 +42,7 @@ class Snack(models.Model):
     path_img = models.CharField(max_length=255, blank=True, null=True)
     deletion_date = models.DateTimeField(blank=True, null=True)
     category = models.ForeignKey(
-        Snack_category, on_delete=models.CASCADE, related_name="snacks"
+        SnackCategory, on_delete=models.CASCADE, related_name="snacks"
     )
 
     class Meta:

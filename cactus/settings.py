@@ -22,7 +22,6 @@ CORS_ALLOWED_ORIGINS = ("http://192.168.3.102:3000",)
 
 CORS_ALLOW_METHODS = ("DELETE", "GET", "PATCH", "POST")
 
-
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
