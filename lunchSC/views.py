@@ -5,6 +5,7 @@ from django.utils import timezone
 from rest_framework import status
 
 from cactus.utils.formatters import format_price
+from cactus.utils.converter import day_to_number_converter
 from cactus.utils.message import dispatch_message_websocket
 from cactus.core.authentication import SCAuthenticationHttp
 from cactus.core.view import SCView
@@ -27,7 +28,7 @@ class DishView(SCView):
 
         dish_name = kwargs.get("dish_name")
 
-        query_dish = get_object_or_404(Dish, name=dish_name)
+        query_dish = get_object_or_404(Dish, day=day_to_number_converter(dish_name))
         kwargs["dish"] = query_dish
 
         return super().dispatch(request, *args, **kwargs)
@@ -223,7 +224,7 @@ class CompositionView(SCView):
 
         query_composition = get_object_or_404(
             Composition,
-            dish__name=dish_name,
+            dish__day=day_to_number_converter(dish_name),
             ingredient__name=ingredient_name,
             ingredient__deletion_date__isnull=True,
         )

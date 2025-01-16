@@ -3,7 +3,7 @@ from django.db import models
 from userSC.models import User
 from snackSC.models import Snack
 from lunchSC.models import Composition
-from lunchSC.variables import days_week
+from cactus.core.variables import days_week
 
 
 class Order(models.Model):

@@ -39,9 +39,11 @@ class LunchConsumer(SCWebsocketConsumer):
 
     @database_sync_to_async
     def get_lunch(self):
-        """Obter os dados dos ingredientes e dos pratos."""
+        """Obtem os dados dos ingredientes e dos pratos."""
 
-        ingredients = Ingredient.objects.filter(deletion_date__isnull=True)
+        ingredients = Ingredient.objects.filter(deletion_date__isnull=True).order_by(
+            "name"
+        )
         ingredient_serializer = IngredientSerializer(ingredients, many=True)
 
         dish_serializer = DishSerializer(Dish.objects, many=True)

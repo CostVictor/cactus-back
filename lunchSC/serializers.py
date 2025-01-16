@@ -3,7 +3,7 @@ from cactus.utils.formatters import format_price
 from rest_framework import serializers
 
 from .models import Dish, Ingredient, Composition
-from .variables import days_week
+from cactus.core.variables import days_week
 
 
 class DishSerializer(SCSerializer):
@@ -46,11 +46,11 @@ class DishSerializer(SCSerializer):
         )
 
         # Serializa as composições.
-        compositions_serialize = CompositionSerializer(
-            compositions, many=True, remove_fields=["dish"]
-        )
+        compositions_serializer = CompositionSerializer(
+            compositions, many=True, remove_field=["dish"]
+        ).data
 
-        for composition in compositions_serialize:
+        for composition in compositions_serializer:
             choice_number = composition.config_choice_number
             ingredient = composition.ingredient
 
