@@ -60,7 +60,7 @@ class BuySnack(models.Model):
         return f"Compra de {self.quantity_product} unidades de {self.snack.name} no pedido {self.order.id}"
 
 
-class BuyComposition(models.Model):
+class BuyIngredient(models.Model):
     composition = models.ForeignKey(
         Composition, on_delete=models.CASCADE, related_name="purchases"
     )

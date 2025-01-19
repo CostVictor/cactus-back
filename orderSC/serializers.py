@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from cactus.core.serializers import SCSerializer
 from cactus.core.variables import days_week
-from .models import Order, HistoryChangeOrder, BuySnack, BuyComposition
+from .models import Order, HistoryChangeOrder, BuySnack, BuyIngredient
 
 
 class HistoryChangeOrderSerializer(SCSerializer):
@@ -39,7 +39,7 @@ class BuySnackSerializer(SCSerializer):
         return obj.quantity_product * obj.snack.price
 
 
-class BuyCompositionSerializer(SCSerializer):
+class BuyIngredientSerializer(SCSerializer):
     dish_name = serializers.SerializerMethodField()
     dish_price = serializers.SerializerMethodField()
     ingredient_name = serializers.SerializerMethodField()
@@ -53,7 +53,7 @@ class BuyCompositionSerializer(SCSerializer):
             "ingredient_price",
             "quantity_ingredient",
         ]
-        model = BuyComposition
+        model = BuyIngredient
 
     def get_dish_name(self, obj):
         return days_week[obj.dish.day]
@@ -76,7 +76,7 @@ class BuyCompositionSerializer(SCSerializer):
 class OrderSerializer(SCSerializer):
     history = HistoryChangeOrderSerializer()
     buy_snack = BuySnackSerializer()
-    buy_lunch = BuyCompositionSerializer()
+    buy_lunch = BuyIngredientSerializer()
     total_value = serializers.SerializerMethodField()
 
     class Meta:
