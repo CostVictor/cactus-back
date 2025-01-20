@@ -28,9 +28,13 @@ class SnackSerializer(SCSerializer):
         }
 
     def validate_name(self, value):
-        if Snack.objects.filter(name=value, deletion_date__isnull=True):
+        check_snack = Snack.objects.filter(
+            name=value, deletion_date__isnull=True, category__deletion_date__isnull=True
+        ).first()
+
+        if check_snack:
             raise serializers.ValidationError(
-                f'O item "{value}" já existe nesta categoria.'
+                f'O item "{value}" já existe na categoria "{check_snack.category.name}".'
             )
 
         return value

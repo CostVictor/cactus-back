@@ -48,7 +48,7 @@ class DishView(SCView):
             raise PermissionDenied("Usuário não autorizado.")
 
         data = request.data
-        data["dish"] = dish.id
+        data["dish"] = {"id": dish.id}
 
         if "ingredient_name" not in data:
             raise ValidationError(
@@ -64,7 +64,7 @@ class DishView(SCView):
                 "O ingrediente informado não existe. Por favor, verifique o nome do ingrediente."
             )
 
-        data["ingredient"] = ingredient.id
+        data["ingredient"] = {"id": ingredient.id}
 
         serializer = CompositionSerializer(data=data)
         serializer.is_valid(raise_exception=True)
