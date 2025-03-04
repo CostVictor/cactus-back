@@ -8,17 +8,24 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "insecure-key")
 
-DEBUG = True
+DEBUG = bool(os.getenv("DEBUG", False))
 
-ALLOWED_HOSTS = ("localhost", "192.168.3.102")
+ALLOWED_HOSTS = [
+    h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost").split(",") if h.strip()
+]
+
+CORS_ALLOWED_ORIGINS = [
+    h.strip()
+    for h in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost").split(",")
+    if h.strip()
+]
+
+# Para restringir solicitações a dominios específicos.
 
 CORS_ALLOW_CREDENTIALS = True  # Permitir cookies em requisições CORS.
 CORS_ALLOW_ALL_ORIGINS = False  # False para produção.
-
-# Para restringir solicitações a dominios específicos.
-CORS_ALLOWED_ORIGINS = ("http://192.168.3.102:3000",)
 
 CORS_ALLOW_METHODS = ("DELETE", "GET", "PATCH", "POST")
 
