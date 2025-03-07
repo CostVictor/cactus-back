@@ -1,68 +1,46 @@
 from rest_framework.views import APIView
-from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework import status
+from typing import Callable
 
 from apps.user.models import User
 
 
 class SCView(APIView):
-    def get(self, request: Request) -> Response:
+    ignore_validation_for_methods: list[str] | None
+
+    def http_method_not_allowed(self, request, *args, **kwargs):
+        method = request.method.upper()
         return Response(
-            {"detail": "O Método GET não é permitido."},
+            {"detail": f"O Método {method} não é permitido."},
             status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
-    def post(self, request: Request) -> Response:
-        return Response(
-            {"detail": "O Método POST não é permitido."},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
-        )
+    def validate_before_access(self, user: User, method: str) -> bool:
+        """Valida se um usuário tem permissão para acessar um método específico antes da execução.
 
-    def put(self, request: Request) -> Response:
-        return Response(
-            {"detail": "O Método PUT não é permitido."},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
-        )
+        Esta função verifica se existe uma validação específico para o método solicitado
+        e o executa, retornando True se a validação passar ou False caso contrário. Métodos
+        listados em `ignore_validation_for_methods` são ignorados na validação.
 
-    def patch(self, request: Request) -> Response:
-        return Response(
-            {"detail": "O Método PATCH não é permitido."},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
-        )
+        Nota: Ao sobreescrever essa função, a validação será aplicada a todos os métodos.
 
-    def delete(self, request: Request) -> Response:
-        return Response(
-            {"detail": "O Método DELETE não é permitido."},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
-        )
+        Args:
+            user (User): O objeto do usuário que está tentando acessar o método.
+            method (str): O nome do método a ser validado (ex.: 'post', 'update').
 
-    def validate_before_access(self, user: User) -> bool:
-        """Validar o que é exigido para acessar qualquer endpoint da view."""
+        Returns:
+            bool: True se o acesso é permitido, False se o acesso é negado ou a validação falhar.
+        """
 
-        return True
+        validator_method_name = f"validate_{method}_before_access"
 
-    def validate_get_before_access(self, user: User) -> bool:
-        """Validar o que é exigido para acessar o método get da view."""
+        if hasattr(self, validator_method_name):
+            validator_method: Callable[[User, str], bool] = getattr(
+                self, validator_method_name
+            )
 
-        return True
-
-    def validate_post_before_access(self, user: User) -> bool:
-        """Validar o que é exigido para acessar o método post da view."""
-
-        return True
-
-    def validate_put_before_access(self, user: User) -> bool:
-        """Validar o que é exigido para acessar o método put da view."""
-
-        return True
-
-    def validate_patch_before_access(self, user: User) -> bool:
-        """Validar o que é exigido para acessar o método patch da view."""
-
-        return True
-
-    def validate_delete_before_access(self, user: User) -> bool:
-        """Validar o que é exigido para acessar o método delete da view."""
+            if callable(validator_method) and not validator_method(user, method):
+                return False
 
         return True

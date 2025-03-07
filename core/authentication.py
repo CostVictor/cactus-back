@@ -8,7 +8,8 @@ from apps.user.models import User
 
 
 class SCAuthenticationHttp(JWTAuthentication):
-    """Autenticação de usuário do sistema cactus através de JWT em Cookies HttpOnly."""
+    """Autenticador de usuário do sistema cactus através de
+    JWT em Cookies HttpOnly (Deve ser utilizado em views que herdem `SCView`)."""
 
     def authenticate(self, request) -> tuple[User, AccessToken]:
         """Valida se o usuário está autenticado."""
@@ -27,34 +28,19 @@ class SCAuthenticationHttp(JWTAuthentication):
             raise AuthenticationFailed("O token é inválido ou expirou.")
 
     def has_permission(self, request, view):
-        """Retorna se o usuário possui permição para acessar a view."""
+        """Retorna se o usuário possui permição para acessar o método da view."""
 
-        # Verifica se o usuário está autenticado.
-        user, _ = self.authenticate(request)
+        method = request.method.lower()
 
         # Verifica se a view atual herda `SCView` para execução do método de validação de acesso.
-        if issubclass(view.__class__, SCView):
-            validation_methods = {
-                "get": view.validate_get_before_access,
-                "post": view.validate_post_before_access,
-                "put": view.validate_put_before_access,
-                "patch": view.validate_patch_before_access,
-                "delete": view.validate_delete_before_access,
-            }
+        if (
+            issubclass(view.__class__, SCView)
+            and method not in view.ignore_validation_for_methods
+        ):
+            # Verifica se o usuário está autenticado.
+            user, _ = self.authenticate(request)
 
-            # Validação global para a view.
-            validated_all = view.validate_before_access(user)
-
-            # Obtem o método da request.
-            request_method = request.method.lower()
-            method_current = validation_methods.get(request_method)
-            validated_for_method = False
-
-            # Validação do método corrente.
-            if method_current is not None:
-                validated_for_method = method_current(user)
-
-            if not validated_all or not validated_for_method:
+            if not view.validate_before_access(user, method):
                 raise PermissionDenied("Usuário não autorizado.")
 
         return True

@@ -27,8 +27,6 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True  # Permitir cookies em requisições CORS.
 CORS_ALLOW_ALL_ORIGINS = False  # False para produção.
 
-CORS_ALLOW_METHODS = ("DELETE", "GET", "PATCH", "POST")
-
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
