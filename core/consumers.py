@@ -2,7 +2,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
 
-from userSC.models import User
+from apps.user.models import User
 
 
 class SCWebsocketConsumer(AsyncJsonWebsocketConsumer):

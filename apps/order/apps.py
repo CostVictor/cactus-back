@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class SessionscConfig(AppConfig):
+class OrderscConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'sessionSC'
+    name = 'apps.order'

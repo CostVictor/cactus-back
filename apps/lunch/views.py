@@ -4,11 +4,11 @@ from rest_framework.response import Response
 from django.utils import timezone
 from rest_framework import status
 
-from cactus.utils.formatters import format_price
-from cactus.utils.converter import day_to_number_converter
-from cactus.utils.message import dispatch_message_websocket
-from cactus.core.authentication import SCAuthenticationHttp
-from cactus.core.view import SCView
+from utils.formatters import format_price
+from utils.converter import day_to_number_converter
+from utils.message import dispatch_message_websocket
+from core.authentication import SCAuthenticationHttp
+from core.view import SCView
 
 from .serializers import DishSerializer, IngredientSerializer, CompositionSerializer
 from .models import Dish, Ingredient, Composition

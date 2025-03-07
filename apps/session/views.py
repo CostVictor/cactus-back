@@ -7,9 +7,9 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.response import Response
 from rest_framework import status
 
-from cactus.core.view import SCView
-from cactus.core.authentication import SCAuthenticationHttp
-from userSC.models import User
+from core.view import SCView
+from core.authentication import SCAuthenticationHttp
+from user.models import User
 
 from .serializers import LoginSerializer
 from .utils import generate_response_with_cookie

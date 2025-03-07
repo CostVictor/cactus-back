@@ -5,7 +5,7 @@ from django.apps import AppConfig
 
 class LunchscConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "lunchSC"
+    name = "apps.lunch"
 
     def ready(self):
         post_migrate.connect(self.check_dishes)

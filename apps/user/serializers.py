@@ -1,5 +1,5 @@
 from django.core.validators import validate_email
-from cactus.core.serializers import SCSerializer
+from core.serializers import SCSerializer
 from django.db import transaction
 from rest_framework import serializers
 import re

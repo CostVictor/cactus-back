@@ -6,11 +6,11 @@ from rest_framework import status
 from django.db import transaction
 from django.utils import timezone
 
-from cactus.core.authentication import SCAuthenticationHttp
-from cactus.utils.message import dispatch_message_websocket
-from cactus.utils.formatters import format_price
-from cactus.core.view import SCView
-from userSC.models import User
+from core.authentication import SCAuthenticationHttp
+from utils.message import dispatch_message_websocket
+from utils.formatters import format_price
+from core.view import SCView
+from user.models import User
 
 from .models import SnackCategory, Snack
 from .serializers import CategorySerializer, SnackSerializer

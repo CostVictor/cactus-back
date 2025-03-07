@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class UserscConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'userSC'
+    name = 'apps.user'

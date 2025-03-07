@@ -4,7 +4,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from django.conf import settings
 
 from .view import SCView
-from userSC.models import User
+from apps.user.models import User
 
 
 class SCAuthenticationHttp(JWTAuthentication):

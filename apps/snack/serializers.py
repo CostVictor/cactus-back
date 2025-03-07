@@ -1,8 +1,9 @@
-from cactus.core.serializers import SCSerializer
 from rest_framework import serializers
 from django.db import transaction
 
-from cactus.utils.formatters import format_price
+from core.serializers import SCSerializer
+from utils.formatters import format_price
+
 from .models import SnackCategory, Description, Snack
 
 

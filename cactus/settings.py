@@ -3,14 +3,16 @@ from pathlib import Path
 from dotenv import load_dotenv
 from datetime import timedelta
 
-# Variáveis de ambiente.
+# Environment variables
 load_dotenv()
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY", "insecure-key")
 
 DEBUG = bool(os.getenv("DEBUG", False))
+
 
 ALLOWED_HOSTS = [
     h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost").split(",") if h.strip()
@@ -22,12 +24,11 @@ CORS_ALLOWED_ORIGINS = [
     if h.strip()
 ]
 
-# Para restringir solicitações a dominios específicos.
-
 CORS_ALLOW_CREDENTIALS = True  # Permitir cookies em requisições CORS.
 CORS_ALLOW_ALL_ORIGINS = False  # False para produção.
 
 CORS_ALLOW_METHODS = ("DELETE", "GET", "PATCH", "POST")
+
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
@@ -37,23 +38,21 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.TokenAuthentication",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "limited_access": "5/minute",  # 5 requisições por minuto.
+        "limited_access": "5/minute",
     },
 }
 
-
 SIMPLE_JWT = {
     "AUTH_COOKIE": "access_token",
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),  # 10 minutos para tokens de acesso.
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Uma semana para o token de refresh.
-    "AUTH_COOKIE_HTTP_ONLY": False,  # True para produção.
-    "AUTH_COOKIE_SECURE": False,  # True para produção.
-    "AUTH_COOKIE_SAMESITE": "Lax",  # Strict para produção.
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "AUTH_COOKIE_HTTP_ONLY": False,  # True to prod.
+    "AUTH_COOKIE_SECURE": False,  # True to prod.
+    "AUTH_COOKIE_SAMESITE": "Lax",  # Strict to prod.
 }
 
 
 # Application definition
-
 INSTALLED_APPS = [
     "daphne",
     "django.contrib.admin",
@@ -66,10 +65,10 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
-    "sessionSC",
-    "userSC",
-    "snackSC",
-    "lunchSC",
+    "apps.session",
+    "apps.user",
+    "apps.snack",
+    "apps.lunch",
 ]
 
 
@@ -141,7 +140,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-AUTH_USER_MODEL = "userSC.User"
+AUTH_USER_MODEL = "user.User"
 
 
 LANGUAGE_CODE = "pt-br"

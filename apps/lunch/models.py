@@ -1,5 +1,5 @@
 from django.db import models
-from cactus.core.variables import days_week
+from core.variables import days_week
 
 
 class Dish(models.Model):

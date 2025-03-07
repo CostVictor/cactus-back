@@ -1,9 +1,10 @@
-from cactus.core.serializers import SCSerializer
-from cactus.utils.formatters import format_price
 from rest_framework import serializers
 
+from core.serializers import SCSerializer
+from core.variables import days_week
+from utils.formatters import format_price
+
 from .models import Dish, Ingredient, Composition
-from cactus.core.variables import days_week
 
 
 class DishSerializer(SCSerializer):

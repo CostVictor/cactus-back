@@ -1,6 +1,8 @@
 from rest_framework import serializers
-from cactus.core.serializers import SCSerializer
-from cactus.core.variables import days_week
+
+from core.serializers import SCSerializer
+from core.variables import days_week
+
 from .models import Order, HistoryChangeOrder, BuySnack, BuyIngredient
 
 

@@ -1,5 +1,5 @@
 from channels.db import database_sync_to_async
-from cactus.core.consumers import SCWebsocketConsumer
+from core.consumers import SCWebsocketConsumer
 
 from .models import SnackCategory
 from .serializers import CategorySerializer
