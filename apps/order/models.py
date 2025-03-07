@@ -27,7 +27,7 @@ class Order(models.Model):
         hour = self.creation_date.hour
         date = self.creation_date.date
 
-        return f"Pedido de {self.user.username} dia {date} às {hour}hrs"
+        return f"Pedido de {self.user.username} feito dia {date} às {hour}hrs"
 
 
 class HistoryChangeOrder(models.Model):

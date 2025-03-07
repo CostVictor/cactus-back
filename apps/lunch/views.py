@@ -23,6 +23,9 @@ class LunchWeekView(SCView):
 
 
 class DishView(SCView):
+    permission_classes = [SCAuthenticationHttp]
+    ignore_validation_for_methods = ["get"]
+
     def dispatch(self, request, *args, **kwargs):
         """Verifica se o prato existe antes de acessar a view."""
 
@@ -33,6 +36,11 @@ class DishView(SCView):
 
         return super().dispatch(request, *args, **kwargs)
 
+    def validate_before_access(self, user):
+        """Verifica se o usuário tem autorização para acessar os endpoints post e patch."""
+
+        return user.is_employee
+
     def get(self, _, dish_name, dish) -> Response:
         """Retorna os dados de um prato específico."""
 
@@ -41,11 +49,6 @@ class DishView(SCView):
 
     def post(self, request, dish_name, dish) -> Response:
         """Cria uma nova composição no prato (adiciona um ingrediente existente)."""
-
-        # Verificando se o usuário está autenticado e possui autorização.
-        user, _ = SCAuthenticationHttp().authenticate(request)
-        if not user.is_employee:
-            raise PermissionDenied("Usuário não autorizado.")
 
         data = request.data
         data["dish"] = {"id": dish.id}
@@ -113,7 +116,7 @@ class IngredientsView(SCView):
     permission_classes = [SCAuthenticationHttp]
 
     def validate_before_access(self, user) -> bool:
-        """Verifica se o usuário é um funcionário."""
+        """Verifica se o usuário é um funcionário para acessar qualquer endpoint."""
 
         return user.is_employee
 
@@ -168,7 +171,7 @@ class IngredientView(SCView):
         return super().dispatch(request, *args, **kwargs)
 
     def validate_before_access(self, user) -> bool:
-        """Verifica se o usuário é um funcionário."""
+        """Verifica se o usuário é um funcionário para acessar qualquer endpoint."""
 
         return user.is_employee
 
@@ -233,7 +236,7 @@ class CompositionView(SCView):
         return super().dispatch(request, *args, **kwargs)
 
     def validate_before_access(self, user) -> bool:
-        """Verifica se o usuário é um funcionário."""
+        """Verifica se o usuário é um funcionário para acessar qualquer endpoint."""
 
         return user.is_employee
 

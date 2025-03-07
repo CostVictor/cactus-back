@@ -1,4 +1,4 @@
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,6 +17,14 @@ from .serializers import CategorySerializer, SnackSerializer
 
 
 class SnackCategoriesView(SCView):
+    permission_classes = [SCAuthenticationHttp]
+    ignore_validation_for_methods = ["get"]
+
+    def validate_before_access(self, user):
+        """Verifica se o usuário tem autorização para acessar os endpoints post e patch."""
+
+        return user.is_employee
+
     def get(self, _):
         """Retorna todas as categorias e lanches."""
 
@@ -35,11 +43,6 @@ class SnackCategoriesView(SCView):
     def post(self, request) -> Response:
         """Cria uma nova categoria."""
 
-        # Verificando se o usuário está autenticado e possui autorização.
-        user, _ = SCAuthenticationHttp().authenticate(request)
-        if not user.is_employee:
-            raise PermissionDenied("Usuário não autorizado.")
-
         serializer = CategorySerializer(
             data=request.data,
             remove_field=["snacks", "update_description"],
@@ -56,11 +59,6 @@ class SnackCategoriesView(SCView):
 
     def patch(self, request: Request) -> Response:
         """Edita a posição das categorias."""
-
-        # Verificando se o usuário está autenticado e possui autorização.
-        user, _ = SCAuthenticationHttp().authenticate(request)
-        if not user.is_employee:
-            raise PermissionDenied("Usuário não autorizado.")
 
         new_order = request.data.get("update_position_order", None)
         if new_order:
@@ -101,7 +99,7 @@ class CategoryView(SCView):
         return super().dispatch(request, *args, **kwargs)
 
     def validate_before_access(self, user: User) -> bool:
-        """Verifica se o usuário tem autorização para acessar os endpoints."""
+        """Verifica se o usuário tem autorização para acessar qualquer endpoint."""
 
         return user.is_employee
 
@@ -109,8 +107,7 @@ class CategoryView(SCView):
         """Retorna os dados da categoria."""
 
         serializer = CategorySerializer(
-            [category],
-            many=True,
+            category,
             remove_field=["snacks", "update_description"],
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -119,7 +116,6 @@ class CategoryView(SCView):
         """Cria um novo item (Snack) na categoria."""
 
         data = request.data
-        data["price"] = format_price(data.get("price", 1), to_float=True)
         data["category"] = category.id
 
         serializer = SnackSerializer(data=data)
@@ -195,7 +191,7 @@ class SnackView(SCView):
         return super().dispatch(request, *args, **kwargs)
 
     def validate_before_access(self, user: User) -> bool:
-        """Verifica se o usuário tem autorização para acessar os endpoints."""
+        """Verifica se o usuário tem autorização para acessar qualquer endpoint."""
 
         return user.is_employee
 

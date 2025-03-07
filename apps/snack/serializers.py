@@ -28,6 +28,11 @@ class SnackSerializer(SCSerializer):
             },
         }
 
+    def internal_value_for_price(self, value):
+        """Converte o preço para um valor numerico ao receber do usuário."""
+
+        return format_price(value, to_float=True)
+
     def validate_name(self, value):
         check_snack = Snack.objects.filter(
             name=value, deletion_date__isnull=True, category__deletion_date__isnull=True
@@ -57,10 +62,10 @@ class SnackSerializer(SCSerializer):
 
         return value
 
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation["price"] = format_price(float(representation["price"]))
-        return representation
+    def representation_for_price(self, value):
+        """Formata o preço para o padrão brasileiro (R$ XX,XX) antes de enviar."""
+
+        return format_price(float(value))
 
 
 class DescriptionSerializer(SCSerializer):
@@ -72,10 +77,8 @@ class DescriptionSerializer(SCSerializer):
 
 
 class CategorySerializer(SCSerializer):
-    # Obtem todos os produtos relacionados à categoria.
     snacks = serializers.SerializerMethodField()
-    description = serializers.SerializerMethodField()
-    update_description = serializers.JSONField()
+    description = DescriptionSerializer(required=False)
 
     class Meta:
         fields = [
@@ -83,7 +86,6 @@ class CategorySerializer(SCSerializer):
             "path_img",
             "snacks",
             "description",
-            "update_description",
         ]
         model = SnackCategory
 
@@ -93,22 +95,11 @@ class CategorySerializer(SCSerializer):
         snacks = obj.snacks.filter(deletion_date__isnull=True).order_by("name")
         return SnackSerializer(snacks, many=True, remove_field=["category"]).data
 
-    def get_description(self, obj):
-        """Obtem a descrição da categoria."""
-
-        if hasattr(obj, "description"):
-            return DescriptionSerializer(
-                obj.description, remove_field=["category"]
-            ).data
-
-        return None
-
     def validate_name(self, value):
         """Verifica se existe uma categoria ativa com o mesmo nome."""
 
         if SnackCategory.objects.filter(name=value, deletion_date__isnull=True):
             raise serializers.ValidationError(f'A categoria "{value}" já existe.')
-
         return value
 
     def create(self, validated_data):
@@ -120,8 +111,6 @@ class CategorySerializer(SCSerializer):
 
         with transaction.atomic():
             new_category = SnackCategory(**validated_data)
-
-            # Define a categoria como última posição antes de salvar.
             new_category.position_order = active_category_count + 1
             new_category.save()
 
@@ -135,7 +124,9 @@ class CategorySerializer(SCSerializer):
         return new_category
 
     def update(self, instance, validated_data):
-        description_data = validated_data.pop("update_description", None)
+        """Atualiza a categoria e sua descrição."""
+
+        description_data = validated_data.pop("description", None)
 
         if description_data:
             serializer = DescriptionSerializer(
@@ -147,3 +138,9 @@ class CategorySerializer(SCSerializer):
             serializer.save()
 
         return super().update(instance, validated_data)
+
+    def representation_for_description(self, value):
+        """Remove o campo category da descrição, pois ele é desnecessário."""
+
+        del value["category"]
+        return value

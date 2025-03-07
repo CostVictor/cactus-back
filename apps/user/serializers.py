@@ -1,6 +1,8 @@
 from django.core.validators import validate_email
 from core.serializers import SCSerializer
 from django.db import transaction
+
+from rest_framework.exceptions import PermissionDenied
 from rest_framework import serializers
 import re
 
@@ -43,6 +45,11 @@ class UserSerializer(SCSerializer):
         fields = ["username", "email", "password", "user_details"]
 
     def validate_username(self, value):
+        if User.objects.filter(username=value, deletion_date__isnull=True).exists():
+            raise PermissionDenied(
+                "Este nome de usuário já está em uso. Por favor, defina um nome que facilite sua identificação."
+            )
+
         if len(value) < 10:
             raise serializers.ValidationError(
                 "Por favor, defina um nome de usuário que facilite sua identificação."
@@ -51,6 +58,9 @@ class UserSerializer(SCSerializer):
         return value
 
     def validate_email(self, value):
+        if User.objects.filter(email=value, deletion_date__isnull=True).exists():
+            raise PermissionDenied("Este email já está em uso.")
+
         # Verifica se o email está no padrão válido. Caso contrário, retorna erro.
         validate_email(value)
 

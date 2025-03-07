@@ -15,9 +15,6 @@ class Dish(models.Model):
     description = models.TextField(blank=True, null=True)
     path_img = models.CharField(max_length=255, blank=True, null=True)
 
-    class Meta:
-        db_table = "SC_Dish"
-
     def __str__(self):
         return f"Prato - {days_week[self.day]}"
 
@@ -30,9 +27,6 @@ class Ingredient(models.Model):
     )
     deletion_date = models.DateTimeField(blank=True, null=True)
 
-    class Meta:
-        db_table = "SC_Ingredient"
-
     def __str__(self):
         return self.name
 
@@ -43,7 +37,6 @@ class Composition(models.Model):
     config_choice_number = models.IntegerField()
 
     class Meta:
-        db_table = "SC_Composition"
         unique_together = ("dish", "ingredient")
 
     def __str__(self):

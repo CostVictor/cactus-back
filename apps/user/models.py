@@ -19,8 +19,8 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.BigAutoField(primary_key=True)
-    username = models.CharField(max_length=100, unique=True)
-    email = models.EmailField(max_length=100, unique=True)
+    username = models.CharField(max_length=100)
+    email = models.EmailField(max_length=100)
     password = models.CharField(max_length=128)
     is_active = models.BooleanField(default=True)
 
@@ -37,9 +37,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_employee = models.BooleanField(default=False)
     deletion_date = models.DateTimeField(blank=True, null=True)
 
-    class Meta:
-        db_table = "SC_User"
-
     def __str__(self):
         return self.username
 
@@ -52,7 +49,7 @@ class UserDetails(models.Model):
     path_img_profile = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
-        db_table = "SC_User_details"
+        db_table = "User_details"
 
     def __str__(self):
         return f"{self.user.username} - Details"
