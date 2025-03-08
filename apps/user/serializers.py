@@ -44,12 +44,15 @@ class UserSerializer(SCSerializer):
         model = User
         fields = ["username", "email", "password", "user_details"]
 
-    def validate_username(self, value):
-        if User.objects.filter(username=value, deletion_date__isnull=True).exists():
-            raise PermissionDenied(
-                "Este nome de usuário já está em uso. Por favor, defina um nome que facilite sua identificação."
-            )
+        extra_kwargs = {
+            "username": {
+                "error_messages": {
+                    "unique": "Este nome de usuário já está em uso. Por favor, defina um nome que facilite sua identificação."
+                }
+            },
+        }
 
+    def validate_username(self, value):
         if len(value) < 10:
             raise serializers.ValidationError(
                 "Por favor, defina um nome de usuário que facilite sua identificação."

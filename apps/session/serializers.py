@@ -1,6 +1,6 @@
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import serializers
-from user.models import User
+from apps.user.models import User
 
 
 class LoginSerializer(serializers.Serializer):

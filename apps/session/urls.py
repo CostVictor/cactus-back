@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import LoginView, LogoutView, RefreshView
 
-# Caso altere a URL base, mudar também nos cookies do arquivo utils do app sessionSC.
+# Caso altere a URL base, mudar também nos cookies do arquivo utils do app session.
 
 urlpatterns = [
     path("login/", LoginView.as_view(), name="login"),

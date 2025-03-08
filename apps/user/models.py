@@ -19,9 +19,8 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.BigAutoField(primary_key=True)
-    username = models.CharField(max_length=100)
+    username = models.CharField(max_length=100, unique=True)
     email = models.EmailField(max_length=100)
-    password = models.CharField(max_length=128)
     is_active = models.BooleanField(default=True)
 
     # ADM do sistema.
@@ -29,13 +28,16 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
 
     USERNAME_FIELD = "username"
-    REQUIRED_FIELDS = ["password"]
+    REQUIRED_FIELDS = ["email"]
 
     objects = UserManager()
 
     # Campos customizados.
     is_employee = models.BooleanField(default=False)
     deletion_date = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        db_table = "User"
 
     def __str__(self):
         return self.username

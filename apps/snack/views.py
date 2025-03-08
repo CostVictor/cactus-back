@@ -10,7 +10,7 @@ from core.authentication import SCAuthenticationHttp
 from utils.message import dispatch_message_websocket
 from utils.formatters import format_price
 from core.view import SCView
-from user.models import User
+from apps.user.models import User
 
 from .models import SnackCategory, Snack
 from .serializers import CategorySerializer, SnackSerializer

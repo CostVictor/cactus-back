@@ -8,6 +8,9 @@ class SnackCategory(models.Model):
     path_img = models.CharField(max_length=255, blank=True, null=True)
     deletion_date = models.DateTimeField(blank=True, null=True)
 
+    class Meta:
+        db_table = "Category"
+
     def __str__(self):
         return self.name
 
@@ -41,6 +44,9 @@ class Snack(models.Model):
     category = models.ForeignKey(
         SnackCategory, on_delete=models.CASCADE, related_name="snacks"
     )
+
+    class Meta:
+        db_table = "Snack"
 
     def __str__(self):
         return self.name

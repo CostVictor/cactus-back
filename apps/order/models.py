@@ -1,8 +1,8 @@
 from django.db import models
 
-from user.models import User
-from snack.models import Snack
-from lunch.models import Composition
+from apps.user.models import User
+from apps.snack.models import Snack
+from apps.lunch.models import Composition
 
 from core.variables import days_week
 
@@ -21,7 +21,7 @@ class Order(models.Model):
     )
 
     class Meta:
-        db_table = "SC_Order"
+        db_table = "Order"
 
     def __str__(self):
         hour = self.creation_date.hour
@@ -40,7 +40,7 @@ class HistoryChangeOrder(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="editions")
 
     class Meta:
-        db_table = "SC_History_change_order"
+        db_table = "History_change_order"
 
     def __str__(self):
         return f"Edição de {self.user.username} no pedido {self.order.id}"
@@ -54,7 +54,7 @@ class BuySnack(models.Model):
     quantity_product = models.IntegerField(default=1)
 
     class Meta:
-        db_table = "SC_Buy_snack"
+        db_table = "Buy_snack"
         unique_together = ("snack", "order")
 
     def __str__(self):
@@ -71,7 +71,7 @@ class BuyIngredient(models.Model):
     quantity_ingredient = models.IntegerField(blank=True, null=True)
 
     class Meta:
-        db_table = "SC_Buy_composition"
+        db_table = "Buy_composition"
         unique_together = ("composition", "order")
 
     def __str__(self):

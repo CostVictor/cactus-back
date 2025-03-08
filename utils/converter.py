@@ -1,4 +1,4 @@
-from ..core.variables import days_week
+from core.variables import days_week
 
 
 def day_to_number_converter(value: str):

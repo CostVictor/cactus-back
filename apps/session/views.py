@@ -9,7 +9,7 @@ from rest_framework import status
 
 from core.view import SCView
 from core.authentication import SCAuthenticationHttp
-from user.models import User
+from apps.user.models import User
 
 from .serializers import LoginSerializer
 from .utils import generate_response_with_cookie
