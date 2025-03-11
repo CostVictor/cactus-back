@@ -15,6 +15,7 @@ venv/
 local_settings.py
 settings_local.py
 migrations/
+.devcontainer/
 
 # Diretórios de build e testes
 build/

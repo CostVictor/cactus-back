@@ -22,7 +22,7 @@ COPY requirements.txt .
 # Cria o ambiente virtual e instala as dependências do projeto
 RUN python -m venv /venv && \
   /venv/bin/pip install --upgrade pip && \
-  /venv/bin/pip install -r requirements.txt
+  /venv/bin/pip install --no-cache-dir -r requirements.txt
 
 # Cria um usuário para o projeto
 RUN adduser --disabled-password --no-create-home django-user
