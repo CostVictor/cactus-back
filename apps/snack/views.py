@@ -20,7 +20,7 @@ class SnackCategoriesView(SCView):
     permission_classes = [SCAuthenticationHttp]
     ignore_validation_for_methods = ["get"]
 
-    def validate_before_access(self, user):
+    def validate_before_access(self, user, _):
         """Verifica se o usuário tem autorização para acessar os endpoints post e patch."""
 
         return user.is_employee
@@ -32,11 +32,7 @@ class SnackCategoriesView(SCView):
         categories = SnackCategory.objects.filter(deletion_date__isnull=True).order_by(
             "position_order"
         )
-        serializer = CategorySerializer(
-            categories,
-            many=True,
-            remove_field=["update_description"],
-        )
+        serializer = CategorySerializer(categories, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -45,7 +41,7 @@ class SnackCategoriesView(SCView):
 
         serializer = CategorySerializer(
             data=request.data,
-            remove_field=["snacks", "update_description"],
+            remove_field=["snacks"],
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -98,9 +94,8 @@ class CategoryView(SCView):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def validate_before_access(self, user: User) -> bool:
+    def validate_before_access(self, user: User, _) -> bool:
         """Verifica se o usuário tem autorização para acessar qualquer endpoint."""
-
         return user.is_employee
 
     def get(self, _, category_name, category):
@@ -108,7 +103,7 @@ class CategoryView(SCView):
 
         serializer = CategorySerializer(
             category,
-            remove_field=["snacks", "update_description"],
+            remove_field=["snacks"],
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -190,7 +185,7 @@ class SnackView(SCView):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def validate_before_access(self, user: User) -> bool:
+    def validate_before_access(self, user: User, _) -> bool:
         """Verifica se o usuário tem autorização para acessar qualquer endpoint."""
 
         return user.is_employee

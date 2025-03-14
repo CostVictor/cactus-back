@@ -48,7 +48,5 @@ class SnacksConsumer(SCWebsocketConsumer):
         categories = SnackCategory.objects.filter(deletion_date__isnull=True).order_by(
             "position_order"
         )
-        serializer = CategorySerializer(
-            categories, many=True, remove_field=["update_description"]
-        )
+        serializer = CategorySerializer(categories, many=True)
         return serializer.data

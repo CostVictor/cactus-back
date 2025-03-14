@@ -2,7 +2,8 @@ from rest_framework import serializers
 
 
 class SCSerializer(serializers.ModelSerializer):
-    def __init__(self, remove_field: list[str] | None = None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        remove_field = kwargs.pop("remove_field", None)
         super(SCSerializer, self).__init__(*args, **kwargs)
 
         if remove_field:
