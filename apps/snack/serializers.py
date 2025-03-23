@@ -55,7 +55,7 @@ class SnackSerializer(SCSerializer):
         return value
 
     def validate_price(self, value):
-        if not value:
+        if value <= 0:
             raise serializers.ValidationError(
                 "O preço do item deve ser maior que zero (R$ 0,00)."
             )

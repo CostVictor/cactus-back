@@ -7,7 +7,7 @@ from apps.user.models import User
 
 
 class SCView(APIView):
-    ignore_validation_for_methods: list[str] | None
+    ignore_validation_for_methods: list[str] = []
 
     def http_method_not_allowed(self, request, *args, **kwargs):
         method = request.method.upper()

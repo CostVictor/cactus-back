@@ -1,10 +1,9 @@
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from django.utils import timezone
 from rest_framework import status
 
-from utils.formatters import format_price
 from utils.converter import day_to_number_converter
 from utils.message import dispatch_message_websocket
 from core.authentication import SCAuthenticationHttp
@@ -36,7 +35,7 @@ class DishView(SCView):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def validate_before_access(self, user):
+    def validate_before_access(self, user, _):
         """Verifica se o usuário tem autorização para acessar os endpoints post e patch."""
 
         return user.is_employee
@@ -84,19 +83,9 @@ class DishView(SCView):
     def patch(self, request, dish_name, dish) -> Response:
         """Atualiza os dados de um prato."""
 
-        # Verificando se o usuário está autenticado e possui autorização.
-        user, _ = SCAuthenticationHttp().authenticate(request)
-        if not user.is_employee:
-            raise PermissionDenied("Usuário não autorizado.")
-
-        data = request.data
-
-        if data.get("price", None):
-            data["price"] = format_price(data["price"], to_float=True)
-
         serializer = DishSerializer(
             dish,
-            data=data,
+            data=request.data,
             partial=True,
             remove_fields=["day_name", "ingredients"],
         )
@@ -115,7 +104,7 @@ class DishView(SCView):
 class IngredientsView(SCView):
     permission_classes = [SCAuthenticationHttp]
 
-    def validate_before_access(self, user) -> bool:
+    def validate_before_access(self, user, _) -> bool:
         """Verifica se o usuário é um funcionário para acessar qualquer endpoint."""
 
         return user.is_employee
@@ -131,18 +120,7 @@ class IngredientsView(SCView):
     def post(self, request) -> Response:
         """Cria um novo ingrediente no estoque."""
 
-        data = request.data
-
-        if data.get("additional_charge", None):
-            additional_charge = format_price(data["additional_charge"], to_float=True)
-
-            # Verifica se o valor do adicional é 0.00 e remove o campo do JSON para que armazene NULL no banco de dados.
-            if not additional_charge:
-                del data["additional_charge"]
-            else:
-                data["additional_charge"] = additional_charge
-
-        serializer = IngredientSerializer(data=data)
+        serializer = IngredientSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -170,7 +148,7 @@ class IngredientView(SCView):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def validate_before_access(self, user) -> bool:
+    def validate_before_access(self, user, _) -> bool:
         """Verifica se o usuário é um funcionário para acessar qualquer endpoint."""
 
         return user.is_employee
@@ -184,15 +162,7 @@ class IngredientView(SCView):
     def patch(self, request, ingredient_name, ingredient) -> Response:
         """Atualiza os dados de um ingrediente."""
 
-        data = request.data
-
-        if data.get("additional_charge", None):
-            additional_charge = format_price(data["additional_charge"], to_float=True)
-
-            # Verifica se o valor do adicional é 0.00 e define o campo como NULL no JSON para que armazene no banco de dados.
-            data["additional_charge"] = additional_charge if additional_charge else None
-
-        serializer = IngredientSerializer(ingredient, data=data, partial=True)
+        serializer = IngredientSerializer(ingredient, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -235,7 +205,7 @@ class CompositionView(SCView):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def validate_before_access(self, user) -> bool:
+    def validate_before_access(self, user, _) -> bool:
         """Verifica se o usuário é um funcionário para acessar qualquer endpoint."""
 
         return user.is_employee

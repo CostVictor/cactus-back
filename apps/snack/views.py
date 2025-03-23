@@ -96,6 +96,7 @@ class CategoryView(SCView):
 
     def validate_before_access(self, user: User, _) -> bool:
         """Verifica se o usuário tem autorização para acessar qualquer endpoint."""
+
         return user.is_employee
 
     def get(self, _, category_name, category):

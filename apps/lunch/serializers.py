@@ -28,8 +28,13 @@ class DishSerializer(SCSerializer):
 
         return days_week[obj.day]
 
+    def internal_value_for_price(self, value):
+        """Converte o preço para um valor numerico ao receber do usuário."""
+
+        return format_price(value, to_float=True)
+
     def validate_price(self, value):
-        if not value:
+        if value <= 0:
             raise serializers.ValidationError(
                 "O preço do prato deve ser maior que zero (R$ 0,00)."
             )
@@ -49,9 +54,9 @@ class DishSerializer(SCSerializer):
         # Serializa as composições.
         compositions_serializer = CompositionSerializer(
             compositions, many=True, remove_field=["dish"]
-        ).data
+        )
 
-        for composition in compositions_serializer:
+        for composition in compositions_serializer.data:
             choice_number = composition.config_choice_number
             ingredient = composition.ingredient
 
@@ -69,10 +74,10 @@ class DishSerializer(SCSerializer):
 
         return ingredients
 
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation["price"] = format_price(float(representation["price"]))
-        return representation
+    def representation_for_price(self, value):
+        """Formata o preço para o padrão brasileiro (R$ XX,XX) antes de enviar."""
+
+        return format_price(float(value))
 
 
 class IngredientSerializer(SCSerializer):
@@ -80,20 +85,42 @@ class IngredientSerializer(SCSerializer):
         fields = ["name", "additional_charge"]
         model = Ingredient
 
+    def internal_value_for_additional_charge(self, value):
+        """Converte a quantidade adicional para um valor numerico ao receber do usuário."""
+
+        if not value:
+            return None
+
+        return format_price(value, to_float=True)
+
     def validate_name(self, value):
         """Verifica se existe um ingrediente ativo com o mesmo nome."""
 
-        if Ingredient.objects.filter(name=value, deletion_date__isnull=True):
+        if Ingredient.objects.filter(name=value, deletion_date__isnull=True).exists():
             raise serializers.ValidationError(f'O ingrediente "{value}" já existe.')
 
         return value
 
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        additional_charge = representation["additional_charge"]
-        if additional_charge:
-            representation["additional_charge"] = format_price(float(additional_charge))
-        return representation
+    def validate_additional_charge(self, value):
+        """Verifica se a quantidade adicional do ingrediente é 0 (zero) e define o campo como NULL para armazenar no banco de dados."""
+
+        if not value:
+            return None
+
+        if value < 0:
+            raise serializers.ValidationError(
+                "A quantidade adicional do ingrediente deve ser maior ou igual a zero (0)."
+            )
+
+        return value
+
+    def representation_for_additional_charge(self, value):
+        """Formata a quantidade adicional para o padrão brasileiro (R$ XX,XX) antes de enviar."""
+
+        if value is None:
+            return None
+
+        return format_price(float(value))
 
 
 class CompositionSerializer(SCSerializer):
@@ -107,8 +134,6 @@ class CompositionSerializer(SCSerializer):
     def validate_config_choice_number(self, value):
         try:
             int(value)
-
-            # Verifica a existência de números negativos.
             if value < 0:
                 raise serializers.ValidationError(
                     "O número de escolha única do item tem que ser maior ou igual a zero (0)."
