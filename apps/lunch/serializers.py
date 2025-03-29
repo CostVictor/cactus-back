@@ -47,18 +47,15 @@ class DishSerializer(SCSerializer):
         ingredients = {"multiple_choice": []}
 
         # Obtém as composições do prato que não foram deletadas.
-        compositions = Composition.objects.filter(
-            dish=obj, ingredient__deletion_date__isnull=True
+        compositions = (
+            Composition.objects.filter(dish=obj, ingredient__deletion_date__isnull=True)
+            .order_by("ingredient__name")
+            .all()
         )
 
-        # Serializa as composições.
-        compositions_serializer = CompositionSerializer(
-            compositions, many=True, remove_field=["dish"]
-        )
-
-        for composition in compositions_serializer.data:
+        for composition in compositions:
             choice_number = composition.config_choice_number
-            ingredient = composition.ingredient
+            ingredient = IngredientSerializer(composition.ingredient).data
 
             if choice_number:
                 if "single_choice" not in ingredients:
@@ -68,9 +65,9 @@ class DishSerializer(SCSerializer):
                     ingredients["single_choice"][choice_number] = []
 
                 ingredients["single_choice"][choice_number].append(ingredient)
+                continue
 
-            else:
-                ingredients["multiple_choice"].append(ingredient)
+            ingredients["multiple_choice"].append(ingredient)
 
         return ingredients
 
@@ -124,8 +121,8 @@ class IngredientSerializer(SCSerializer):
 
 
 class CompositionSerializer(SCSerializer):
-    dish = DishSerializer()
-    ingredient = IngredientSerializer()
+    dish = serializers.PrimaryKeyRelatedField(queryset=Dish.objects.all())
+    ingredient = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
 
     class Meta:
         fields = ["config_choice_number", "dish", "ingredient"]

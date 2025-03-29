@@ -40,7 +40,7 @@ class Ingredient(models.Model):
 class Composition(models.Model):
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
-    config_choice_number = models.IntegerField()
+    config_choice_number = models.IntegerField(default=0)
 
     class Meta:
         db_table = "Composition"

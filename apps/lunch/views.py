@@ -2,6 +2,7 @@ from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from django.utils import timezone
+from django.db import transaction
 from rest_framework import status
 
 from utils.converter import day_to_number_converter
@@ -47,36 +48,48 @@ class DishView(SCView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, dish_name, dish) -> Response:
-        """Cria uma nova composição no prato (adiciona um ingrediente existente)."""
+        """Cria novas composições no prato (adiciona ingredientes existentes)."""
 
         data = request.data
-        data["dish"] = {"id": dish.id}
+        data["dish"] = dish.id
 
-        if "ingredient_name" not in data:
+        if "list_ingredients" not in data:
             raise ValidationError(
-                'O campo "ingredient_name" é obrigatório para criar uma nova composição.'
+                'O campo "list_ingredients" é obrigatório para criar novas composições.'
             )
 
-        ingredient = Ingredient.objects.filter(
-            name=data.pop("ingredient_name"), deletion_date__isnull=True
-        ).first()
+        if not isinstance(data["list_ingredients"], list):
+            raise ValidationError("Não foi possível identificar os ingredientes.")
 
-        if not ingredient:
-            raise ValidationError(
-                "O ingrediente informado não existe. Por favor, verifique o nome do ingrediente."
-            )
+        with transaction.atomic():
+            for ingredient_name in data.pop("list_ingredients"):
+                ingredient = Ingredient.objects.filter(
+                    name=ingredient_name, deletion_date__isnull=True
+                ).first()
 
-        data["ingredient"] = {"id": ingredient.id}
+                if not ingredient:
+                    raise ValidationError(
+                        f'Ingrediente "{ingredient_name}" não encontrado.'
+                    )
 
-        serializer = CompositionSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+                if Composition.objects.filter(
+                    dish=dish, ingredient=ingredient
+                ).exists():
+                    raise ValidationError(
+                        f'O ingrediente "{ingredient_name}" já está vinculado ao prato de {dish_name}.'
+                    )
+
+                data["ingredient"] = ingredient.id
+
+                serializer = CompositionSerializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
 
         # Notifica todos os clientes websocket sobre a adição de uma nova composição no prato.
         dispatch_message_websocket("lunch_group", "lunch_update")
 
         return Response(
-            {"message": f'Composição adicionada ao prato "{dish_name}" com sucesso.'},
+            {"message": f'Composições adicionadas ao prato "{dish_name}" com sucesso.'},
             status=status.HTTP_201_CREATED,
         )
 
