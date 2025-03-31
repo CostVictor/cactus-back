@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Max
 from rest_framework import status
 
 from utils.converter import day_to_number_converter
@@ -53,6 +54,16 @@ class DishView(SCView):
         data = request.data
         data["dish"] = dish.id
 
+        if data.get("config_choice_number", None):
+            max_choice_number = Composition.objects.filter(
+                dish=dish, ingredient__deletion_date__isnull=True
+            ).aggregate(Max("config_choice_number"))["config_choice_number__max"]
+
+            if data["config_choice_number"] > max_choice_number + 1:
+                raise ValidationError(
+                    "O número de escolha única ultrapassa o valor permitido."
+                )
+
         if "list_ingredients" not in data:
             raise ValidationError(
                 'O campo "list_ingredients" é obrigatório para criar novas composições.'
@@ -100,7 +111,7 @@ class DishView(SCView):
             dish,
             data=request.data,
             partial=True,
-            remove_fields=["day_name", "ingredients"],
+            remove_field=["day_name", "ingredients"],
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -227,21 +238,66 @@ class CompositionView(SCView):
         """Retorna os dados de uma composição específica (Relação entre prato e ingrediente)."""
 
         serializer = CompositionSerializer(
-            composition, remove_fields=["dish", "ingredient"]
+            composition, remove_field=["dish", "ingredient"]
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def patch(self, request, dish_name, ingredient_name, composition) -> Response:
         """Atualiza os dados de uma composição (Relação entre prato e ingrediente)."""
 
-        serializer = CompositionSerializer(
-            composition,
-            data=request.data,
-            partial=True,
-            remove_fields=["dish", "ingredient"],
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        data = request.data
+
+        if "config_choice_number" not in data or not isinstance(
+            data["config_choice_number"], int
+        ):
+            raise ValidationError(
+                "O campo numérico 'config_choice_number' é obrigatório para atualizar a composição."
+            )
+
+        dish = composition.dish
+
+        max_choice_number = Composition.objects.filter(
+            dish=dish, ingredient__deletion_date__isnull=True
+        ).aggregate(Max("config_choice_number"))["config_choice_number__max"]
+
+        if data["config_choice_number"] > max_choice_number + 1:
+            raise ValidationError(
+                "O número de escolha única ultrapassa o valor permitido."
+            )
+
+        # A verificação dos blocos deve iniciar a partir da composição que está sendo modificada,
+        # pois a mesma pode deixar de existir.
+        current_choice_number = composition.config_choice_number
+
+        with transaction.atomic():
+            serializer = CompositionSerializer(
+                composition,
+                data=data,
+                partial=True,
+                remove_field=["dish", "ingredient"],
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            if current_choice_number:
+                # Atualiza a numeração das composições do prato para manter a ordem numérica, caso necessário.
+                possible_affected_compositions = (
+                    Composition.objects.filter(
+                        dish=dish,
+                        ingredient__deletion_date__isnull=True,
+                        config_choice_number__gte=current_choice_number,
+                    )
+                    .order_by("config_choice_number")
+                    .all()
+                )
+
+                for target in possible_affected_compositions:
+                    if target.config_choice_number == current_choice_number:
+                        # Se existir uma composição com a mesma numeração, mantém a ordem atual.
+                        break
+
+                    target.config_choice_number -= 1
+                    target.save()
 
         # Notifica todos os clientes websocket sobre a edição da composição.
         dispatch_message_websocket("lunch_group", "lunch_update")
@@ -256,7 +312,32 @@ class CompositionView(SCView):
     def delete(self, _, dish_name, ingredient_name, composition) -> Response:
         """Exclui uma composição (Relação entre prato e ingrediente)."""
 
-        composition.delete()
+        with transaction.atomic():
+            choice_number = composition.config_choice_number
+            dish = composition.dish
+
+            composition.delete()
+
+            if choice_number:
+                # Atualiza a numeração das composições do prato para manter a ordem numérica, caso necessário.
+
+                possible_affected_compositions = (
+                    Composition.objects.filter(
+                        dish=dish,
+                        ingredient__deletion_date__isnull=True,
+                        config_choice_number__gte=choice_number,
+                    )
+                    .order_by("config_choice_number")
+                    .all()
+                )
+
+                for target in possible_affected_compositions:
+                    if target.config_choice_number == choice_number:
+                        # Se existir uma composição com a mesma numeração, mantém a ordem atual.
+                        break
+
+                    target.config_choice_number -= 1
+                    target.save()
 
         # Notifica todos os clientes websocket sobre a exclusão da composição.
         dispatch_message_websocket("lunch_group", "lunch_update")
