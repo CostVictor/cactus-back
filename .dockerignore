@@ -1,0 +1,55 @@
+# Arquivos e diretórios do Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.env
+.env*
+
+# Arquivos de desenvolvimento local
+*.log
+*.pot
+local_settings.py
+settings_local.py
+migrations/
+.devcontainer/
+
+# Diretórios de build e testes
+build/
+dist/
+*.egg-info
+*.egg
+htmlcov/
+.coverage
+*.cover
+.pytest_cache/
+.tox/
+
+# Arquivos do Git
+.git
+.gitignore
+
+# Arquivos do Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Banco de dados local
+*.sqlite3
+
+# Diretórios de mídia e estáticos (se não forem necessários no container)
+media/
+static/
+
+# Arquivos de IDE/Editores
+.idea/
+.vscode/
+*.sublime-project
+
+# Outros arquivos desnecessários
+*.bak
+*.swp
+*~
