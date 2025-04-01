@@ -22,4 +22,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/CostVictor/cactus-back:latest
+          tags: ghcr.io/costvictor/cactus-back:latest
