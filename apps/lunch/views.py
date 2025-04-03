@@ -64,16 +64,16 @@ class DishView(SCView):
                     "O número de escolha única ultrapassa o valor permitido."
                 )
 
-        if "list_ingredients" not in data:
+        if "ingredients" not in data:
             raise ValidationError(
-                'O campo "list_ingredients" é obrigatório para criar novas composições.'
+                'O campo "ingredients" é obrigatório para criar novas composições.'
             )
 
-        if not isinstance(data["list_ingredients"], list):
-            raise ValidationError("Não foi possível identificar os ingredientes.")
+        if not isinstance(data["ingredients"], list):
+            data["ingredients"] = [data["ingredients"]]
 
         with transaction.atomic():
-            for ingredient_name in data.pop("list_ingredients"):
+            for ingredient_name in data.pop("ingredients"):
                 ingredient = Ingredient.objects.filter(
                     name=ingredient_name, deletion_date__isnull=True
                 ).first()
