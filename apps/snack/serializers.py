@@ -33,7 +33,17 @@ class SnackSerializer(SCSerializer):
 
         return format_price(value, to_float=True)
 
+    def internal_value_for_description(self, value):
+        """Adiciona None ao banco de dados se o campo for string vazia."""
+
+        if not value:
+            return None
+
+        return value
+
     def validate_name(self, value):
+        """Verifica se existe um item ativo com o mesmo nome."""
+
         check_snack = Snack.objects.filter(
             name=value, deletion_date__isnull=True, category__deletion_date__isnull=True
         ).first()
@@ -46,6 +56,8 @@ class SnackSerializer(SCSerializer):
         return value
 
     def validate_quantity_in_stock(self, value):
+        """Verifica se a quantidade no estoque é maior ou igual a zero (0)."""
+
         # O mínimo existente no estoque deve ser 0.
         if value < 0:
             raise serializers.ValidationError(
@@ -55,6 +67,8 @@ class SnackSerializer(SCSerializer):
         return value
 
     def validate_price(self, value):
+        """Verifica se o preço do item é maior que zero."""
+
         if value <= 0:
             raise serializers.ValidationError(
                 "O preço do item deve ser maior que zero (R$ 0,00)."

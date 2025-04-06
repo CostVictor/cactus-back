@@ -33,13 +33,55 @@ class DishSerializer(SCSerializer):
 
         return format_price(value, to_float=True)
 
+    def internal_value_for_initial_deadline(self, value):
+        """Adiciona None ao banco de dados se o campo for string vazia."""
+
+        if not value:
+            return None
+
+        return value
+
+    def internal_value_for_deadline(self, value):
+        """Adiciona None ao banco de dados se o campo for string vazia."""
+
+        if not value:
+            return None
+
+        return value
+
+    def internal_value_for_description(self, value):
+        """Adiciona None ao banco de dados se o campo for string vazia."""
+
+        if not value:
+            return None
+
+        return value
+
     def validate_price(self, value):
+        """Verifica se o preço do prato é maior que zero."""
+
         if value <= 0:
             raise serializers.ValidationError(
                 "O preço do prato deve ser maior que zero (R$ 0,00)."
             )
 
         return value
+
+    def validate(self, attrs):
+        """Verifica se a data de encerramento de pedidos do prato é posterior a data de início."""
+
+        if attrs.get("deadline", None) or attrs.get("initial_deadline", None):
+            deadline = attrs.get("deadline", self.instance.deadline)
+            initial_deadline = attrs.get(
+                "initial_deadline", self.instance.initial_deadline
+            )
+
+            if initial_deadline and deadline and deadline <= initial_deadline:
+                raise serializers.ValidationError(
+                    "A data limite de pedidos do prato deve ser posterior a data de início."
+                )
+
+        return super().validate(attrs)
 
     def get_ingredients(self, obj):
         """Retorna os ingredientes do prato, separados por escolha única e múltipla."""
@@ -75,6 +117,22 @@ class DishSerializer(SCSerializer):
         """Formata o preço para o padrão brasileiro (R$ XX,XX) antes de enviar."""
 
         return format_price(float(value))
+
+    def representation_for_initial_deadline(self, value):
+        """Retorna apenas hora e minuto."""
+
+        if not value:
+            return None
+
+        return value[0:5]
+
+    def representation_for_deadline(self, value):
+        """Retorna apenas hora e minuto."""
+
+        if not value:
+            return None
+
+        return value[0:5]
 
 
 class IngredientSerializer(SCSerializer):
@@ -129,6 +187,8 @@ class CompositionSerializer(SCSerializer):
         model = Composition
 
     def validate_config_choice_number(self, value):
+        """Verifica se o número de escolha única do item é maior ou igual a zero (0)."""
+
         try:
             int(value)
             if value < 0:

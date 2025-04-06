@@ -46,7 +46,7 @@ class LunchConsumer(SCWebsocketConsumer):
         )
         ingredient_serializer = IngredientSerializer(ingredients, many=True)
 
-        dish_serializer = DishSerializer(Dish.objects, many=True)
+        dish_serializer = DishSerializer(Dish.objects.order_by("day"), many=True)
 
         return {
             "ingredients": ingredient_serializer.data,
