@@ -30,22 +30,6 @@ class Order(models.Model):
         return f"Pedido de {self.user.username} feito dia {date} às {hour}hrs"
 
 
-class HistoryChangeOrder(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    description = models.TextField()
-    datetime = models.DateTimeField()
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="edited_orders"
-    )
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="editions")
-
-    class Meta:
-        db_table = "History_change_order"
-
-    def __str__(self):
-        return f"Edição de {self.user.username} no pedido {self.order.id}"
-
-
 class BuySnack(models.Model):
     snack = models.ForeignKey(Snack, on_delete=models.CASCADE, related_name="purchases")
     order = models.ForeignKey(

@@ -1,29 +1,21 @@
 from rest_framework.exceptions import ValidationError
-from django.shortcuts import get_object_or_404
 from rest_framework.request import Request
 from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from django.db import transaction
 from django.utils import timezone
 
-from core.authentication import SCAuthenticationHttp
 from utils.message import dispatch_message_websocket
 from utils.formatters import format_price
 from core.view import SCView
-from apps.user.models import User
 
 from .models import SnackCategory, Snack
 from .serializers import CategorySerializer, SnackSerializer
 
 
 class SnackCategoriesView(SCView):
-    permission_classes = [SCAuthenticationHttp]
-    ignore_validation_for_methods = ["get"]
-
-    def validate_before_access(self, user, _):
-        """Verifica se o usuário tem autorização para acessar os endpoints post e patch."""
-
-        return user.is_employee
+    ignore_authentication_for_methods = ["get"]
 
     def get(self, _):
         """Retorna todas as categorias e lanches."""
@@ -36,6 +28,7 @@ class SnackCategoriesView(SCView):
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @SCView.access_to_employee
     def post(self, request) -> Response:
         """Cria uma nova categoria."""
 
@@ -53,6 +46,7 @@ class SnackCategoriesView(SCView):
             {"message": "Categoria criada com sucesso."}, status=status.HTTP_201_CREATED
         )
 
+    @SCView.access_to_employee
     def patch(self, request: Request) -> Response:
         """Edita a posição das categorias."""
 
@@ -80,8 +74,6 @@ class SnackCategoriesView(SCView):
 
 
 class CategoryView(SCView):
-    permission_classes = [SCAuthenticationHttp]
-
     def dispatch(self, request, *args, **kwargs):
         """Verifica se a categoria existe antes de acessar os endpoints."""
 
@@ -94,11 +86,7 @@ class CategoryView(SCView):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def validate_before_access(self, user: User, _) -> bool:
-        """Verifica se o usuário tem autorização para acessar qualquer endpoint."""
-
-        return user.is_employee
-
+    @SCView.access_to_employee
     def get(self, _, category_name, category):
         """Retorna os dados da categoria."""
 
@@ -108,6 +96,7 @@ class CategoryView(SCView):
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @SCView.access_to_employee
     def post(self, request, category_name, category):
         """Cria um novo item (Snack) na categoria."""
 
@@ -126,6 +115,7 @@ class CategoryView(SCView):
             status=status.HTTP_201_CREATED,
         )
 
+    @SCView.access_to_employee
     def patch(self, request, category_name, category):
         """Edita os dados da categoria."""
 
@@ -146,6 +136,7 @@ class CategoryView(SCView):
             status=status.HTTP_200_OK,
         )
 
+    @SCView.access_to_employee
     def delete(self, _, category_name, category):
         """Marca a categoria como excluída."""
 
@@ -168,8 +159,6 @@ class CategoryView(SCView):
 
 
 class SnackView(SCView):
-    permission_classes = [SCAuthenticationHttp]
-
     def dispatch(self, request, *args, **kwargs):
         """Verifica se a categoria e o item existe antes de acessar os endpoints."""
 
@@ -186,17 +175,14 @@ class SnackView(SCView):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def validate_before_access(self, user: User, _) -> bool:
-        """Verifica se o usuário tem autorização para acessar qualquer endpoint."""
-
-        return user.is_employee
-
+    @SCView.access_to_employee
     def get(self, _, category_name, snack_name, snack):
         """Retorna os dados do lanche."""
 
         serializer = SnackSerializer(snack)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @SCView.access_to_employee
     def patch(self, request, category_name, snack_name, snack):
         """Edita os dados do lanche."""
 
@@ -220,6 +206,7 @@ class SnackView(SCView):
             status=status.HTTP_200_OK,
         )
 
+    @SCView.access_to_employee
     def delete(self, _, category_name, snack_name, snack):
         """Marca o item como excluído."""
 

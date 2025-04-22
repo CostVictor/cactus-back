@@ -8,7 +8,6 @@ from rest_framework import status
 
 from utils.converter import day_to_number_converter
 from utils.message import dispatch_message_websocket
-from core.authentication import SCAuthenticationHttp
 from core.view import SCView
 
 from .serializers import DishSerializer, IngredientSerializer, CompositionSerializer
@@ -16,6 +15,8 @@ from .models import Dish, Ingredient, Composition
 
 
 class LunchWeekView(SCView):
+    authentication_classes = []
+
     def get(self, _):
         """Retorna os dados de todos os pratos da semana."""
 
@@ -24,8 +25,7 @@ class LunchWeekView(SCView):
 
 
 class DishView(SCView):
-    permission_classes = [SCAuthenticationHttp]
-    ignore_validation_for_methods = ["get"]
+    ignore_authentication_for_methods = ["get"]
 
     def dispatch(self, request, *args, **kwargs):
         """Verifica se o prato existe antes de acessar a view."""
@@ -37,17 +37,13 @@ class DishView(SCView):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def validate_before_access(self, user, _):
-        """Verifica se o usuário tem autorização para acessar os endpoints post e patch."""
-
-        return user.is_employee
-
     def get(self, _, dish_name, dish) -> Response:
         """Retorna os dados de um prato específico."""
 
         serializer = DishSerializer(dish)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @SCView.access_to_employee
     def post(self, request, dish_name, dish) -> Response:
         """Cria novas composições no prato (adiciona ingredientes existentes)."""
 
@@ -104,6 +100,7 @@ class DishView(SCView):
             status=status.HTTP_201_CREATED,
         )
 
+    @SCView.access_to_employee
     def patch(self, request, dish_name, dish) -> Response:
         """Atualiza os dados de um prato."""
 
@@ -126,13 +123,7 @@ class DishView(SCView):
 
 
 class IngredientsView(SCView):
-    permission_classes = [SCAuthenticationHttp]
-
-    def validate_before_access(self, user, _) -> bool:
-        """Verifica se o usuário é um funcionário para acessar qualquer endpoint."""
-
-        return user.is_employee
-
+    @SCView.access_to_employee
     def get(self, _) -> Response:
         """Retorna os dados de todos os ingredientes."""
 
@@ -141,6 +132,7 @@ class IngredientsView(SCView):
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @SCView.access_to_employee
     def post(self, request) -> Response:
         """Cria um novo ingrediente no estoque."""
 
@@ -158,8 +150,6 @@ class IngredientsView(SCView):
 
 
 class IngredientView(SCView):
-    permission_classes = [SCAuthenticationHttp]
-
     def dispatch(self, request, *args, **kwargs):
         """Verifica se o ingrediente existe antes de acessar a view."""
 
@@ -172,17 +162,14 @@ class IngredientView(SCView):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def validate_before_access(self, user, _) -> bool:
-        """Verifica se o usuário é um funcionário para acessar qualquer endpoint."""
-
-        return user.is_employee
-
+    @SCView.access_to_employee
     def get(self, _, ingredient_name, ingredient) -> Response:
         """Retorna os dados de um ingrediente específico."""
 
         serializer = IngredientSerializer(ingredient)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @SCView.access_to_employee
     def patch(self, request, ingredient_name, ingredient) -> Response:
         """Atualiza os dados de um ingrediente."""
 
@@ -198,6 +185,7 @@ class IngredientView(SCView):
             status=status.HTTP_200_OK,
         )
 
+    @SCView.access_to_employee
     def delete(self, _, ingredient_name, ingredient) -> Response:
         """Marca o ingrediente como excluído."""
 
@@ -211,8 +199,6 @@ class IngredientView(SCView):
 
 
 class CompositionView(SCView):
-    permission_classes = [SCAuthenticationHttp]
-
     def dispatch(self, request, *args, **kwargs):
         """Verifica se a composição existe antes de acessar a view."""
 
@@ -229,11 +215,7 @@ class CompositionView(SCView):
 
         return super().dispatch(request, *args, **kwargs)
 
-    def validate_before_access(self, user, _) -> bool:
-        """Verifica se o usuário é um funcionário para acessar qualquer endpoint."""
-
-        return user.is_employee
-
+    @SCView.access_to_employee
     def get(self, _, dish_name, ingredient_name, composition) -> Response:
         """Retorna os dados de uma composição específica (Relação entre prato e ingrediente)."""
 
@@ -242,6 +224,7 @@ class CompositionView(SCView):
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @SCView.access_to_employee
     def patch(self, request, dish_name, ingredient_name, composition) -> Response:
         """Atualiza os dados de uma composição (Relação entre prato e ingrediente)."""
 
@@ -309,6 +292,7 @@ class CompositionView(SCView):
             status=status.HTTP_200_OK,
         )
 
+    @SCView.access_to_employee
     def delete(self, _, dish_name, ingredient_name, composition) -> Response:
         """Exclui uma composição (Relação entre prato e ingrediente)."""
 

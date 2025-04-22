@@ -3,7 +3,6 @@ from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework_simplejwt.tokens import AccessToken
 from django.conf import settings
 
-from .view import SCView
 from apps.user.models import User
 
 
@@ -22,25 +21,15 @@ class SCAuthenticationHttp(JWTAuthentication):
 
         try:
             validated_token = AccessToken(token)
-            return self.get_user(validated_token), validated_token
+            user = self.get_user(validated_token)
+
+            if user.is_active:
+                return user, validated_token
+
+            comment = (
+                user.comment or "Esta conta foi desativada por tempo indeterminado."
+            )
+            raise PermissionDenied(comment)
 
         except:
             raise AuthenticationFailed("O token é inválido ou expirou.")
-
-    def has_permission(self, request, view):
-        """Retorna se o usuário possui permição para acessar o método da view."""
-
-        method = request.method.lower()
-
-        # Verifica se a view atual herda `SCView` para execução do método de validação de acesso.
-        if (
-            issubclass(view.__class__, SCView)
-            and method not in view.ignore_validation_for_methods
-        ):
-            # Verifica se o usuário está autenticado.
-            user, _ = self.authenticate(request)
-
-            if not view.validate_before_access(user, method):
-                raise PermissionDenied("Usuário não autorizado.")
-
-        return True

@@ -7,6 +7,7 @@ from .serializers import UserSerializer
 
 
 class RegisterView(APIView):
+    authentication_classes = []
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "limited_access"
 

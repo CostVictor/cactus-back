@@ -1,13 +1,12 @@
-from rest_framework.views import APIView
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework import status
-from typing import Callable
-
-from apps.user.models import User
+from functools import wraps
 
 
 class SCView(APIView):
-    ignore_validation_for_methods: list[str] = []
+    ignore_authentication_for_methods = []
 
     def http_method_not_allowed(self, request, *args, **kwargs):
         method = request.method.upper()
@@ -16,31 +15,21 @@ class SCView(APIView):
             status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
-    def validate_before_access(self, user: User, method: str) -> bool:
-        """Valida se um usuário tem permissão para acessar um método específico antes da execução.
+    def get_authenticators(self):
+        if self.request.method.lower() in self.ignore_authentication_for_methods:
+            return []
 
-        Esta função verifica se existe uma validação específico para o método solicitado
-        e o executa, retornando True se a validação passar ou False caso contrário. Métodos
-        listados em `ignore_validation_for_methods` são ignorados na validação.
+        return super().get_authenticators()
 
-        Nota: Ao sobreescrever essa função, a validação será aplicada a todos os métodos.
+    def access_to_employee(view):
+        @wraps(view)
+        def wrapper(*args, **kwargs):
+            _, request = args
+            user = request.user
 
-        Args:
-            user (User): O objeto do usuário que está tentando acessar o método.
-            method (str): O nome do método a ser validado (ex.: 'post', 'update').
+            if user.is_anonymous or not user.is_employee:
+                raise PermissionDenied("Você não tem permissão para acessar essa rota.")
 
-        Returns:
-            bool: True se o acesso é permitido, False se o acesso é negado ou a validação falhar.
-        """
+            return view(*args, **kwargs)
 
-        validator_method_name = f"validate_{method}_before_access"
-
-        if hasattr(self, validator_method_name):
-            validator_method: Callable[[User, str], bool] = getattr(
-                self, validator_method_name
-            )
-
-            if callable(validator_method) and not validator_method(user, method):
-                return False
-
-        return True
+        return wrapper

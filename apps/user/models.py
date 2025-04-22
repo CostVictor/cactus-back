@@ -20,21 +20,22 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.BigAutoField(primary_key=True)
     username = models.CharField(max_length=100, unique=True)
-    email = models.EmailField(max_length=100)
+    email = models.EmailField(max_length=100, unique=True)
     is_active = models.BooleanField(default=True)
 
     # ADM do sistema.
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
 
-    USERNAME_FIELD = "username"
-    REQUIRED_FIELDS = ["email"]
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["username"]
 
     objects = UserManager()
 
     # Campos customizados.
     is_employee = models.BooleanField(default=False)
     deletion_date = models.DateTimeField(blank=True, null=True)
+    comment = models.TextField(blank=True, null=True)
 
     class Meta:
         db_table = "User"

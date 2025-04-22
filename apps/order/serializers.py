@@ -3,18 +3,7 @@ from rest_framework import serializers
 from core.serializers import SCSerializer
 from core.variables import days_week
 
-from .models import Order, HistoryChangeOrder, BuySnack, BuyIngredient
-
-
-class HistoryChangeOrderSerializer(SCSerializer):
-    editor_user = serializers.SerializerMethodField()
-
-    class Meta:
-        fields = ["description", "datetime", "editor_user"]
-        model = HistoryChangeOrder
-
-    def get_editor_user(self, obj):
-        return obj.user.username
+from .models import Order, BuySnack, BuyIngredient
 
 
 class BuySnackSerializer(SCSerializer):
@@ -76,7 +65,6 @@ class BuyIngredientSerializer(SCSerializer):
 
 
 class OrderSerializer(SCSerializer):
-    history = HistoryChangeOrderSerializer()
     buy_snack = BuySnackSerializer()
     buy_lunch = BuyIngredientSerializer()
     total_value = serializers.SerializerMethodField()
@@ -87,7 +75,6 @@ class OrderSerializer(SCSerializer):
             "creation_date",
             "final_payment_date",
             "description",
-            "history",
         ]
         model = Order
 

@@ -1,6 +1,7 @@
 from rest_framework.exceptions import (
     AuthenticationFailed,
     ValidationError,
+    PermissionDenied,
 )
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.throttling import ScopedRateThrottle
@@ -8,7 +9,6 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from core.view import SCView
-from core.authentication import SCAuthenticationHttp
 from apps.user.models import User
 
 from .serializers import LoginSerializer
@@ -16,6 +16,7 @@ from .utils import generate_response_with_cookie
 
 
 class LoginView(SCView):
+    authentication_classes = []
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "limited_access"
 
@@ -33,6 +34,13 @@ class LoginView(SCView):
                 pass
 
         user = serializer.validated_data["user"]
+
+        if not user.is_active:
+            comment = (
+                user.comment or "Esta conta foi desativada por tempo indeterminado."
+            )
+            raise PermissionDenied(comment)
+
         new_token = RefreshToken.for_user(user)
         data = {
             "username": user.username,
@@ -43,7 +51,6 @@ class LoginView(SCView):
 
 
 class LogoutView(SCView):
-    permission_classes = [SCAuthenticationHttp]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "limited_access"
 
@@ -75,6 +82,7 @@ class RefreshView(SCView):
     O token de refresh tem validade para apenas um uso.
     """
 
+    authentication_classes = []
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "limited_access"
 
@@ -90,10 +98,17 @@ class RefreshView(SCView):
             prev_token.blacklist()
 
             user = User.objects.filter(id=prev_token["user_id"]).first()
-            new_refresh_token = RefreshToken.for_user(user)
 
-            data = {"message": "Tokens atualizados."}
-            return generate_response_with_cookie(new_refresh_token, data)
+            if user.is_active:
+                new_refresh_token = RefreshToken.for_user(user)
+
+                data = {"message": "Tokens atualizados."}
+                return generate_response_with_cookie(new_refresh_token, data)
+
+            comment = (
+                user.comment or "Esta conta foi desativada por tempo indeterminado."
+            )
+            raise PermissionDenied(comment)
 
         except:
             # O token de atualização é inválido (O usuário terá que fazer login novamente).

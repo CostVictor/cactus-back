@@ -33,7 +33,7 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.TokenAuthentication",
+        "core.authentication.SCAuthenticationHttp",
     ],
     "DEFAULT_THROTTLE_RATES": {
         "limited_access": "5/minute",
