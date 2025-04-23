@@ -43,23 +43,29 @@ class TodayView(SCView):
     def get(self, request, dish):
         """Retorna os dados do prato do dia (se disponível) com a opção de também obter os dados de todos os produtos."""
 
-        with_products = request.query_params.get("with_products", False)
-        dish_serializer = DishSerializer(dish)
+        try:
+            with_products = (
+                request.query_params.get("with_products", "false").lower() == "true"
+            )
+            dish_serializer = DishSerializer(dish)
 
-        if with_products:
-            categories = SnackCategory.objects.filter(
-                deletion_date__isnull=True
-            ).order_by("position_order")
-            products_serializer = CategorySerializer(categories, many=True)
+            if with_products:
+                categories = SnackCategory.objects.filter(
+                    deletion_date__isnull=True
+                ).order_by("position_order")
+                products_serializer = CategorySerializer(categories, many=True)
 
-            data = {
-                "dish": dish_serializer.data,
-                "products": products_serializer.data,
-            }
+                data = {
+                    "dish": dish_serializer.data,
+                    "products": products_serializer.data,
+                }
 
-            return Response(data, status=status.HTTP_200_OK)
+                return Response(data, status=status.HTTP_200_OK)
 
-        return Response(dish_serializer.data, status=status.HTTP_200_OK)
+            return Response(dish_serializer.data, status=status.HTTP_200_OK)
+
+        except:
+            raise ValidationError("Query param inválido.")
 
 
 class DishView(SCView):
