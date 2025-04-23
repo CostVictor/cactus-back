@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (
     LunchWeekView,
+    TodayView,
     DishView,
     IngredientsView,
     IngredientView,
@@ -9,6 +10,7 @@ from .views import (
 
 urlpatterns = [
     path("", LunchWeekView.as_view(), name="lunch_week"),
+    path("today/", TodayView.as_view(), name="today"),
     path("ingredients/", IngredientsView.as_view(), name="ingredients"),
     path(
         "ingredients/<str:ingredient_name>/",

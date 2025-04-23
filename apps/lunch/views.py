@@ -10,6 +10,9 @@ from utils.converter import day_to_number_converter
 from utils.message import dispatch_message_websocket
 from core.view import SCView
 
+from apps.snack.models import SnackCategory
+from apps.snack.serializers import CategorySerializer
+
 from .serializers import DishSerializer, IngredientSerializer, CompositionSerializer
 from .models import Dish, Ingredient, Composition
 
@@ -20,8 +23,43 @@ class LunchWeekView(SCView):
     def get(self, _):
         """Retorna os dados de todos os pratos da semana."""
 
-        serializer = DishSerializer(Dish.objects, many=True)
+        all_dishes = Dish.objects.order_by("day")
+        serializer = DishSerializer(all_dishes, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class TodayView(SCView):
+    authentication_classes = []
+
+    def dispatch(self, request, *args, **kwargs):
+        now = timezone.now()
+        weekday = now.weekday() + 1
+
+        dish = get_object_or_404(Dish, day=weekday)
+        kwargs["dish"] = dish
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, dish):
+        """Retorna os dados do prato do dia (se disponível) com a opção de também obter os dados de todos os produtos."""
+
+        with_products = request.query_params.get("with_products", False)
+        dish_serializer = DishSerializer(dish)
+
+        if with_products:
+            categories = SnackCategory.objects.filter(
+                deletion_date__isnull=True
+            ).order_by("position_order")
+            products_serializer = CategorySerializer(categories, many=True)
+
+            data = {
+                "dish": dish_serializer.data,
+                "products": products_serializer.data,
+            }
+
+            return Response(data, status=status.HTTP_200_OK)
+
+        return Response(dish_serializer.data, status=status.HTTP_200_OK)
 
 
 class DishView(SCView):
