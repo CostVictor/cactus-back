@@ -3,6 +3,7 @@ from rest_framework import serializers
 from core.serializers import SCSerializer
 from core.variables import days_week
 
+from utils.formatters import format_price
 from .models import Order, BuySnack, BuyIngredient
 
 
@@ -24,10 +25,18 @@ class BuySnackSerializer(SCSerializer):
         return obj.snack.name
 
     def get_price(self, obj):
-        return obj.snack.price
+        return {
+            "formatted_amount": format_price(obj.price_to_purchase),
+            "amount": obj.price_to_purchase,
+        }
 
     def get_total_value(self, obj):
-        return obj.quantity_product * obj.snack.price
+        total = obj.price_to_purchase * obj.quantity_product
+
+        return {
+            "formatted_amount": format_price(total),
+            "amount": total,
+        }
 
 
 class BuyIngredientSerializer(SCSerializer):
@@ -50,42 +59,76 @@ class BuyIngredientSerializer(SCSerializer):
         return days_week[obj.dish.day]
 
     def get_dish_price(self, obj):
-        return obj.dish.price
+        return {
+            "formatted_amount": format_price(obj.price_to_purchase_dish),
+            "amount": obj.price_to_purchase_dish,
+        }
 
     def get_ingredient_name(self, obj):
         return obj.ingredient.name
 
     def get_ingredient_price(self, obj):
-        additional_charge = obj.ingredient.additional_charge
+        additional_charge = obj.price_to_purchase_ingredient
 
         if obj.quantity_ingredient and additional_charge:
-            return obj.quantity_ingredient * additional_charge
+            total = obj.quantity_ingredient * additional_charge
 
-        return 0
+            return {
+                "formatted_amount": format_price(total),
+                "amount": total,
+            }
+
+        return {
+            "formatted_amount": "R$ 0,00",
+            "amount": 0,
+        }
 
 
 class OrderSerializer(SCSerializer):
-    buy_snack = BuySnackSerializer()
-    buy_lunch = BuyIngredientSerializer()
-    total_value = serializers.SerializerMethodField()
+    buy_snack = BuySnackSerializer(many=True)
+    buy_lunch = BuyIngredientSerializer(many=True)
+    values = serializers.SerializerMethodField()
 
     class Meta:
         fields = [
-            "total_value",
             "creation_date",
             "final_payment_date",
             "description",
+            "buy_snack",
+            "buy_lunch",
+            "values",
         ]
         model = Order
 
-    def get_total_value(self, obj):
-        print(obj.buy_snack)
-        print(obj.buy_lunch)
+    def get_values(self, _):
+        buy_snack = self.fields["buy_snack"]
+        buy_lunch = self.fields["buy_lunch"]
 
-    def validate_total_value(self, value):
-        if not value:
-            raise serializers.ValidationError(
-                "O valor do pedido deve ser maior que zero (R$ 0,00)"
-            )
+        values = {
+            "snacks": {"formatted_amount": "", "amount": 0},
+            "lunch": {"formatted_amount": "", "amount": 0},
+            "total": {"formatted_amount": "", "amount": 0},
+        }
 
-        return value
+        for buy in buy_snack:
+            values["snacks"]["amount"] += buy["total_value"]["amount"]
+
+        for buy in buy_lunch:
+            values["lunch"]["amount"] += buy["ingredient_price"]["amount"]
+
+        values["lunch"]["amount"] = (
+            values["lunch"]["amount"]
+            if not len(buy_lunch)
+            else values["lunch"]["amount"] + buy_lunch[0]["dish_price"]["amount"]
+        )
+
+        total = values["snacks"]["amount"] + values["lunch"]["amount"]
+
+        values["total"] = {
+            "formatted_amount": format_price(total),
+            "amount": total,
+        }
+        values["snacks"]["formatted_amount"] = format_price(values["snacks"]["amount"])
+        values["lunch"]["formatted_amount"] = format_price(values["lunch"]["amount"])
+
+        return values

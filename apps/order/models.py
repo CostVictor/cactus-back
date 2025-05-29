@@ -36,6 +36,7 @@ class BuySnack(models.Model):
         Order, on_delete=models.CASCADE, related_name="purchased_snacks"
     )
     quantity_product = models.IntegerField(default=1)
+    price_to_purchase = models.DecimalField(max_digits=4, decimal_places=2)
 
     class Meta:
         db_table = "Buy_snack"
@@ -53,6 +54,8 @@ class BuyIngredient(models.Model):
         Order, on_delete=models.CASCADE, related_name="purchased_compositions"
     )
     quantity_ingredient = models.IntegerField(blank=True, null=True)
+    price_to_purchase_dish = models.DecimalField(max_digits=4, decimal_places=2)
+    price_to_purchase_ingredient = models.DecimalField(max_digits=4, decimal_places=2)
 
     class Meta:
         db_table = "Buy_composition"
