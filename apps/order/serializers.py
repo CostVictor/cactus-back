@@ -1,7 +1,12 @@
 from rest_framework import serializers
+from django.db import transaction
+from django.utils import timezone
 
 from core.serializers import SCSerializer
 from core.variables import days_week
+
+from apps.snack.models import Snack
+from apps.lunch.models import Dish, Composition
 
 from utils.formatters import format_price
 from .models import Order, BuySnack, BuyIngredient
@@ -85,50 +90,112 @@ class BuyIngredientSerializer(SCSerializer):
 
 
 class OrderSerializer(SCSerializer):
-    buy_snack = BuySnackSerializer(many=True)
-    buy_lunch = BuyIngredientSerializer(many=True)
-    values = serializers.SerializerMethodField()
+    snacks = BuySnackSerializer(many=True)
+    lunch = BuyIngredientSerializer(many=True)
+    creator_user = serializers.CharField(source="creator_user.username")
 
     class Meta:
         fields = [
+            "public_id",
+            "user",
+            "creator_user",
             "creation_date",
             "final_payment_date",
+            "amount_due",
+            "amount_snacks",
+            "amount_lunch",
+            "fulfilled",
+            "hidden",
             "description",
-            "buy_snack",
-            "buy_lunch",
-            "values",
+            "snacks",
+            "lunch",
+        ]
+        read_only_fields = [
+            "public_id",
+            "user",
+            "creator_user",
+            "creation_date",
+            "amount_snacks",
+            "amount_lunch",
+            "description",
+            "snacks",
+            "lunch",
         ]
         model = Order
 
-    def get_values(self, _):
-        buy_snack = self.fields["buy_snack"]
-        buy_lunch = self.fields["buy_lunch"]
+    def create(self, validated_data):
+        snacks = validated_data.pop("snacks", [])
+        lunch = validated_data.pop("lunch", [])
 
-        values = {
-            "snacks": {"formatted_amount": "", "amount": 0},
-            "lunch": {"formatted_amount": "", "amount": 0},
-            "total": {"formatted_amount": "", "amount": 0},
-        }
+        now = timezone.now()
+        weekday = now.weekday() + 1
 
-        for buy in buy_snack:
-            values["snacks"]["amount"] += buy["total_value"]["amount"]
+        dish = Dish.objects.filter(day=weekday).first()
+        if not dish and lunch:
+            raise serializers.ValidationError(
+                f"Não foi possível encontrar o prato de {days_week[weekday]}."
+            )
 
-        for buy in buy_lunch:
-            values["lunch"]["amount"] += buy["ingredient_price"]["amount"]
+        with transaction.atomic():
+            order = Order(**validated_data)
+            order.creation_date = now
+            order.save()
 
-        values["lunch"]["amount"] = (
-            values["lunch"]["amount"]
-            if not len(buy_lunch)
-            else values["lunch"]["amount"] + buy_lunch[0]["dish_price"]["amount"]
-        )
+            amount_snack = 0
+            for key, value in snacks.items():
+                for product in value:
+                    target_snack = Snack.objects.filter(
+                        name=product["name"],
+                        deletion_date__isnull=True,
+                        category__name=key,
+                        category__deletion_date__isnull=True,
+                    ).first()
 
-        total = values["snacks"]["amount"] + values["lunch"]["amount"]
+                    if not target_snack:
+                        raise serializers.ValidationError(
+                            f"O item {product['name']} não foi encontado."
+                        )
 
-        values["total"] = {
-            "formatted_amount": format_price(total),
-            "amount": total,
-        }
-        values["snacks"]["formatted_amount"] = format_price(values["snacks"]["amount"])
-        values["lunch"]["formatted_amount"] = format_price(values["lunch"]["amount"])
+                    buy_snack = BuySnack(
+                        snack=target_snack,
+                        order=order,
+                        quantity_product=product["quantity"],
+                        price_to_purchase=target_snack.price,
+                    )
+                    buy_snack.save()
+                    amount_snack += product["quantity"] * target_snack.price
 
-        return values
+            amount_lunch = dish.price if lunch else 0
+            for ingredient in lunch:
+                target_composition = Composition.objects.filter(
+                    dish__id=dish.id,
+                    ingredient__name=ingredient["name"],
+                    ingredient__deletion_date__isnull=True,
+                ).first()
+
+                if not target_composition:
+                    raise serializers.ValidationError(
+                        f"O ingrediente {ingredient['name']} não foi encontado."
+                    )
+
+                target_ingredient = target_composition.ingredient
+                additional_charge = target_ingredient.additional_charge or 0
+
+                buy_ingredient = BuyIngredient(
+                    order=order,
+                    composition=target_composition,
+                    quantity_ingredient=ingredient["quantity"],
+                    price_to_purchase_dish=dish.price,
+                    price_to_purchase_ingredient=additional_charge,
+                )
+                buy_ingredient.save()
+
+                amount_lunch += ingredient["quantity"] * additional_charge
+
+            order.amount_due = amount_snack + amount_lunch
+            order.amount_snacks = amount_snack
+            order.amount_lunch = amount_lunch
+
+            order.save()
+
+        return order

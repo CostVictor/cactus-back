@@ -1,4 +1,5 @@
 from django.db import models
+import uuid
 
 from apps.user.models import User
 from apps.snack.models import Snack
@@ -9,12 +10,15 @@ from core.variables import days_week
 
 class Order(models.Model):
     id = models.BigAutoField(primary_key=True)
-    total_value = models.DecimalField(max_digits=5, decimal_places=2)
+    public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    amount_snacks = models.DecimalField(max_digits=5, decimal_places=2)
+    amount_lunch = models.DecimalField(max_digits=5, decimal_places=2)
+    amount_due = models.DecimalField(max_digits=5, decimal_places=2)
     creation_date = models.DateTimeField()
-    order_fulfilled = models.BooleanField(default=False)
+    fulfilled = models.BooleanField(default=False)
     final_payment_date = models.DateTimeField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
-    deletion_date = models.DateTimeField(blank=True, null=True)
+    hidden = models.BooleanField(default=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
     creator_user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="configured_orders"
