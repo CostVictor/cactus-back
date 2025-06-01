@@ -139,8 +139,34 @@ class PaidOrderView(SCView):
 
     @SCView.access_to_employee
     def post(self, _, public_id, order):
+        """Marca um pedido como pago de forma manual."""
+
         order.final_payment_date = timezone.now()
         order.hidden = True
+        order.save()
+
+        dispatch_message_websocket("order_group", "order_update")
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class FulfilledOrderView(SCView):
+    def dispatch(self, request, *args, **kwargs):
+        public_id = kwargs.get("public_id")
+
+        query_order = get_object_or_404(
+            Order,
+            public_id=public_id,
+        )
+        kwargs["order"] = query_order
+
+        return super().dispatch(request, *args, **kwargs)
+
+    @SCView.access_to_employee
+    def post(self, _, public_id, order):
+        """Marca um pedido como atendido."""
+
+        order.fulfilled = True
         order.save()
 
         dispatch_message_websocket("order_group", "order_update")
