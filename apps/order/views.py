@@ -1,5 +1,7 @@
 from core.view import SCView
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.db import transaction
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -30,12 +32,15 @@ class OrdersView(SCView):
         """Cria um novo pedido."""
 
         data = response.data
+        message = "Pedido criado com sucesso."
 
         creator_user = response.user
         target_username = data.get("username", None)
         target_user = (
             User.objects.filter(
-                username=target_username, is_active=True, deletion_date__isnull=True
+                username=target_username.replace("Func.", "").strip(),
+                deletion_date__isnull=True,
+                is_active=True,
             ).first()
             if target_username
             else None
@@ -48,28 +53,33 @@ class OrdersView(SCView):
             else creator_user.id
         )
 
-        serializer = OrderSerializer(
-            data=data,
-            remove_field=[
-                "public_id",
-                "creation_date",
-                "final_payment_date",
-                "full_amount",
-                "amount_snacks",
-                "amount_lunch",
-                "amount_due",
-                "fulfilled",
-                "hidden",
-            ],
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        with transaction.atomic():
+            serializer = OrderSerializer(
+                data=data,
+                remove_field=[
+                    "public_id",
+                    "creation_date",
+                    "final_payment_date",
+                    "full_amount",
+                    "amount_snacks",
+                    "amount_lunch",
+                    "amount_due",
+                    "fulfilled",
+                    "hidden",
+                ],
+            )
+            serializer.is_valid(raise_exception=True)
+            order = serializer.save()
+
+            if target_user and target_user.is_employee:
+                message = "A compra foi registrada."
+                order.final_payment_date = timezone.now()
+                order.hidden = True
+                order.save()
 
         dispatch_message_websocket("orders_group", "orders_update")
 
-        return Response(
-            {"message": "Pedido criado com sucesso."}, status=status.HTTP_201_CREATED
-        )
+        return Response({"message": message}, status=status.HTTP_201_CREATED)
 
 
 # class PayOrdersView(SCView):
@@ -115,8 +125,27 @@ class OrderView(SCView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# class PaidOrderView(SCView):
-#     def post(self, response): ...
+class PaidOrderView(SCView):
+    def dispatch(self, request, *args, **kwargs):
+        public_id = kwargs.get("public_id")
+
+        query_order = get_object_or_404(
+            Order,
+            public_id=public_id,
+        )
+        kwargs["order"] = query_order
+
+        return super().dispatch(request, *args, **kwargs)
+
+    @SCView.access_to_employee
+    def post(self, _, public_id, order):
+        order.final_payment_date = timezone.now()
+        order.hidden = True
+        order.save()
+
+        dispatch_message_websocket("order_group", "order_update")
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # class PayOrderView(SCView):
