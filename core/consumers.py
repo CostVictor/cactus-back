@@ -15,7 +15,9 @@ class SCWebsocketConsumer(AsyncJsonWebsocketConsumer):
                 decoded_token = AccessToken(access_token)
                 return await self.get_user_by_id(decoded_token["user_id"])
             except:
-                await self.close(code=4001, reason="O token é inválido ou expirou.")
+                return await self.close(
+                    code=4001, reason="O token é inválido ou expirou."
+                )
 
         return None
 

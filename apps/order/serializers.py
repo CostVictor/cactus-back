@@ -92,6 +92,7 @@ class BuyIngredientSerializer(SCSerializer):
 class OrderSerializer(SCSerializer):
     snacks = BuySnackSerializer(many=True)
     lunch = BuyIngredientSerializer(many=True)
+    user = serializers.CharField(source="user.username")
     creator_user = serializers.CharField(source="creator_user.username")
 
     class Meta:
@@ -122,6 +123,24 @@ class OrderSerializer(SCSerializer):
             "lunch",
         ]
         model = Order
+
+    def representation_for_amount_due(self, value):
+        return {
+            "formatted_amount": format_price(value),
+            "amount": value,
+        }
+
+    def representation_for_amount_snacks(self, value):
+        return {
+            "formatted_amount": format_price(value),
+            "amount": value,
+        }
+
+    def representation_for_amount_lunch(self, value):
+        return {
+            "formatted_amount": format_price(value),
+            "amount": value,
+        }
 
     def create(self, validated_data):
         snacks = validated_data.pop("snacks", [])

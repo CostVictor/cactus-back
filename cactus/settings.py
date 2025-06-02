@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "apps.session",
     "apps.snack",
     "apps.lunch",
+    "apps.order",
 ]
 
 
