@@ -7,7 +7,6 @@ from django.db import transaction
 from django.utils import timezone
 
 from utils.message import dispatch_message_websocket
-from utils.formatters import format_price
 from core.view import SCView
 
 from .models import SnackCategory, Snack
@@ -186,12 +185,8 @@ class SnackView(SCView):
     def patch(self, request, category_name, snack_name, snack):
         """Edita os dados do lanche."""
 
-        data = request.data
-        if data.get("price", None):
-            data["price"] = format_price(data["price"], to_float=True)
-
         serializer = SnackSerializer(
-            snack, data=data, partial=True, remove_field=["category"]
+            snack, data=request.data, partial=True, remove_field=["category"]
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
