@@ -74,6 +74,7 @@ class OrdersView(SCView):
             if target_user and target_user.is_employee:
                 message = "A compra foi registrada."
                 order.final_payment_date = timezone.now()
+                order.fulfilled = True
                 order.hidden = True
                 order.save()
 
@@ -142,6 +143,7 @@ class PaidOrderView(SCView):
         """Marca um pedido como pago de forma manual."""
 
         order.final_payment_date = timezone.now()
+        order.fulfilled = True
         order.hidden = True
         order.save()
 
