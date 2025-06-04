@@ -14,12 +14,19 @@ def format_price(value, to_float=False):
 
     Raises:
         ValidationError: Se o valor fornecido não puder ser convertido para número quando to_float=True
+        ou se o valor fornecido não for uma string quando to_float=False
     """
     if to_float:
-        new_value = value.replace("R$", "").replace(",", ".").strip()
-        try:
-            return float(new_value)
-        except:
-            raise ValidationError("O preço fornecido não é válido.")
+        if type(value) == str:
+            new_value = value.replace("R$", "").replace(",", ".").strip()
+            try:
+                return float(new_value)
+            except:
+                raise ValidationError("O preço fornecido não é válido.")
+
+        raise ValidationError("O preço deve ser um texto.")
+
+    if type(value) != float and type(value) != int:
+        raise ValidationError("O valor fornecido não é válido.")
 
     return f"R$ {value:.2f}".replace(".", ",")

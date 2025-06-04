@@ -13,79 +13,50 @@ from .models import Order, BuySnack, BuyIngredient
 
 
 class BuySnackSerializer(SCSerializer):
-    name = serializers.SerializerMethodField()
-    price = serializers.SerializerMethodField()
-    total_value = serializers.SerializerMethodField()
+    name = serializers.CharField(source="snack.name")
 
     class Meta:
         fields = [
             "name",
-            "price",
-            "total_value",
             "quantity_product",
+            "price_to_purchase",
         ]
         model = BuySnack
 
-    def get_name(self, obj):
-        return obj.snack.name
-
-    def get_price(self, obj):
+    def representation_for_price_to_purchase(self, value):
         return {
-            "formatted_amount": format_price(obj.price_to_purchase),
-            "amount": obj.price_to_purchase,
-        }
-
-    def get_total_value(self, obj):
-        total = obj.price_to_purchase * obj.quantity_product
-
-        return {
-            "formatted_amount": format_price(total),
-            "amount": total,
+            "formatted_amount": format_price(value),
+            "amount": value,
         }
 
 
 class BuyIngredientSerializer(SCSerializer):
     dish_name = serializers.SerializerMethodField()
-    dish_price = serializers.SerializerMethodField()
-    ingredient_name = serializers.SerializerMethodField()
-    ingredient_price = serializers.SerializerMethodField()
+    ingredient_name = serializers.CharField(source="composition.ingredient.name")
 
     class Meta:
         fields = [
             "dish_name",
-            "dish_price",
             "ingredient_name",
-            "ingredient_price",
             "quantity_ingredient",
+            "price_to_purchase_dish",
+            "price_to_purchase_ingredient",
         ]
         model = BuyIngredient
 
     def get_dish_name(self, obj):
-        return days_week[obj.dish.day]
+        return days_week[obj.composition.dish.day]
 
-    def get_dish_price(self, obj):
+    def representation_for_price_to_purchase_dish(self, value):
         return {
-            "formatted_amount": format_price(obj.price_to_purchase_dish),
-            "amount": obj.price_to_purchase_dish,
+            "formatted_amount": format_price(value),
+            "amount": value,
         }
 
-    def get_ingredient_name(self, obj):
-        return obj.ingredient.name
-
-    def get_ingredient_price(self, obj):
-        additional_charge = obj.price_to_purchase_ingredient
-
-        if obj.quantity_ingredient and additional_charge:
-            total = obj.quantity_ingredient * additional_charge
-
-            return {
-                "formatted_amount": format_price(total),
-                "amount": total,
-            }
-
+    def representation_for_price_to_purchase_ingredient(self, value):
         return {
-            "formatted_amount": "R$ 0,00",
-            "amount": 0,
+            "formatted_amount": format_price(value),
+            "amount": value,
         }
 
 
