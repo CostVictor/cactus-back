@@ -60,7 +60,6 @@ class OrdersView(SCView):
                     "public_id",
                     "creation_date",
                     "final_payment_date",
-                    "full_amount",
                     "amount_snacks",
                     "amount_lunch",
                     "amount_due",

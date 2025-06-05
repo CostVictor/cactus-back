@@ -7,6 +7,9 @@ from core.variables import days_week
 
 from apps.snack.models import Snack
 from apps.lunch.models import Dish, Composition
+from apps.user.models import User
+
+from apps.user.serializers import UserSerializer
 
 from utils.formatters import format_price
 from .models import Order, BuySnack, BuyIngredient
@@ -61,10 +64,14 @@ class BuyIngredientSerializer(SCSerializer):
 
 
 class OrderSerializer(SCSerializer):
-    snacks = BuySnackSerializer(many=True)
+    snacks = serializers.JSONField()
     lunch = BuyIngredientSerializer(many=True)
-    user = serializers.CharField(source="user.username")
-    creator_user = serializers.CharField(source="creator_user.username")
+    creator_user = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(is_active=True, deletion_date__isnull=True)
+    )
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(is_active=True, deletion_date__isnull=True)
+    )
 
     class Meta:
         fields = [
@@ -113,9 +120,18 @@ class OrderSerializer(SCSerializer):
             "amount": value,
         }
 
+    def representation_for_user(self, value):
+        return value.username
+
+    def representation_for_creator_user(self, value):
+        return value.username
+
     def create(self, validated_data):
         snacks = validated_data.pop("snacks", [])
         lunch = validated_data.pop("lunch", [])
+
+        if not snacks and not lunch:
+            raise serializers.ValidationError("Nenhum item foi selecionado.")
 
         now = timezone.now()
         weekday = now.weekday() + 1
@@ -129,6 +145,9 @@ class OrderSerializer(SCSerializer):
         with transaction.atomic():
             order = Order(**validated_data)
             order.creation_date = now
+            order.amount_due = 0
+            order.amount_snacks = 0
+            order.amount_lunch = 0
             order.save()
 
             amount_snack = 0

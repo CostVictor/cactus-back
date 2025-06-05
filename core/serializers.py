@@ -20,6 +20,9 @@ class SCSerializer(serializers.ModelSerializer):
         }
 
     def to_internal_value(self, data):
+        if not isinstance(data, dict):
+            return super().to_internal_value(data)
+
         data_copy = data.copy()
 
         for key, value in data_copy.items():
