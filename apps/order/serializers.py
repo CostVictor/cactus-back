@@ -72,6 +72,7 @@ class OrderSerializer(SCSerializer):
     user = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(is_active=True, deletion_date__isnull=True)
     )
+    description = serializers.CharField(required=False)
 
     class Meta:
         fields = [
@@ -126,6 +127,12 @@ class OrderSerializer(SCSerializer):
     def representation_for_creator_user(self, value):
         return value.username
 
+    def validate_description(self, value):
+        if not value:
+            return None
+
+        return value
+
     def create(self, validated_data):
         snacks = validated_data.pop("snacks", [])
         lunch = validated_data.pop("lunch", [])
@@ -138,9 +145,7 @@ class OrderSerializer(SCSerializer):
 
         dish = Dish.objects.filter(day=weekday).first()
         if not dish and lunch:
-            raise serializers.ValidationError(
-                f"Não foi possível encontrar o prato de {days_week[weekday]}."
-            )
+            raise serializers.ValidationError(f"Não foi possível encontrar o prato.")
 
         with transaction.atomic():
             order = Order(**validated_data)
@@ -153,6 +158,8 @@ class OrderSerializer(SCSerializer):
             amount_snack = 0
             for key, value in snacks.items():
                 for product in value:
+                    quantity = product["quantity"]
+
                     target_snack = Snack.objects.filter(
                         name=product["name"],
                         deletion_date__isnull=True,
@@ -165,14 +172,22 @@ class OrderSerializer(SCSerializer):
                             f"O item {product['name']} não foi encontado."
                         )
 
+                    if quantity > target_snack.quantity_in_stock:
+                        raise serializers.ValidationError(
+                            f'O item "{target_snack.name}" possui apenas {target_snack.quantity_in_stock} unidades em estoque.'
+                        )
+
+                    target_snack.quantity_in_stock -= quantity
+                    target_snack.save()
+
                     buy_snack = BuySnack(
                         snack=target_snack,
                         order=order,
-                        quantity_product=product["quantity"],
+                        quantity_product=quantity,
                         price_to_purchase=target_snack.price,
                     )
                     buy_snack.save()
-                    amount_snack += product["quantity"] * target_snack.price
+                    amount_snack += quantity * target_snack.price
 
             amount_lunch = dish.price if lunch else 0
             for ingredient in lunch:

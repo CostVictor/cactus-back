@@ -29,7 +29,7 @@ class Order(models.Model):
 
     def __str__(self):
         hour = self.creation_date.hour
-        date = self.creation_date.date
+        date = self.creation_date.strftime("%d/%m/%Y")
 
         return f"Pedido de {self.user.username} feito dia {date} às {hour}hrs"
 

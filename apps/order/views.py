@@ -70,11 +70,16 @@ class OrdersView(SCView):
             serializer.is_valid(raise_exception=True)
             order = serializer.save()
 
-            if target_user and target_user.is_employee:
+            if (not target_user and creator_user.is_employee) or (
+                target_user and target_user.is_employee
+            ):
                 message = "A compra foi registrada."
                 order.final_payment_date = timezone.now()
-                order.fulfilled = True
-                order.hidden = True
+
+                if not order.purchased_compositions.exists():
+                    order.fulfilled = True
+                    order.hidden = True
+
                 order.save()
 
         dispatch_message_websocket("orders_group", "orders_update")
@@ -119,7 +124,14 @@ class OrderView(SCView):
         if order.final_payment_date:
             raise ValidationError("Não é possivel apagar um pedido que já foi pago.")
 
-        order.delete()
+        with transaction.atomic():
+            for item in order.purchased_snacks:
+                target_snack = item.snack
+                target_snack.quantity_in_stock += item.quantity_product
+                target_snack.save()
+
+            order.delete()
+
         dispatch_message_websocket("order_group", "order_update")
 
         return Response(status=status.HTTP_204_NO_CONTENT)
