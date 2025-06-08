@@ -15,7 +15,8 @@ urlpatterns = [
 ]
 
 websocket_urlpatterns = [
-    re_path(r"^snack/$", snack_consumers.SnacksConsumer.as_asgi()),
-    re_path(r"^lunch/$", lunch_comsumers.LunchConsumer.as_asgi()),
-    re_path(r"^order/$", order_consumers.OrderConsumer.as_asgi()),
+    re_path(r"^ws/snack/$", snack_consumers.SnacksConsumer.as_asgi()),
+    re_path(r"^ws/lunch/$", lunch_comsumers.LunchConsumer.as_asgi()),
+    re_path(r"^ws/order/snack/$", order_consumers.OrderSnackConsumer.as_asgi()),
+    re_path(r"^ws/order/lunch/$", order_consumers.OrderLunchConsumer.as_asgi()),
 ]

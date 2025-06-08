@@ -10,6 +10,7 @@ services:
       - .env
     depends_on:
       - db
+      - redis
     command: >
       sh -c "python manage.py makemigrations user &&
              python manage.py makemigrations snack &&
@@ -24,3 +25,10 @@ services:
       - .env.db
     ports:
       - "5432:5432"
+
+  redis:
+    image: redis:8.0.2-alpine
+    env_file:
+      - .env.db
+    ports:
+      - "6379:6379"

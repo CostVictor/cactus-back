@@ -70,19 +70,24 @@ class OrdersView(SCView):
             serializer.is_valid(raise_exception=True)
             order = serializer.save()
 
+            is_order_lunch = order.amount_lunch > 0
+
             if (not target_user and creator_user.is_employee) or (
                 target_user and target_user.is_employee
             ):
                 message = "A compra foi registrada."
                 order.final_payment_date = timezone.now()
 
-                if not order.purchased_compositions.exists():
+                if not is_order_lunch:
                     order.fulfilled = True
                     order.hidden = True
 
                 order.save()
 
-        dispatch_message_websocket("orders_group", "orders_update")
+        dispatch_message_websocket(
+            "orders_lunch_group" if is_order_lunch else "orders_snack_group",
+            "orders_update",
+        )
 
         return Response({"message": message}, status=status.HTTP_201_CREATED)
 
@@ -124,6 +129,8 @@ class OrderView(SCView):
         if order.final_payment_date:
             raise ValidationError("Não é possivel apagar um pedido que já foi pago.")
 
+        is_order_lunch = order.amount_lunch > 0
+
         with transaction.atomic():
             for item in order.purchased_snacks:
                 target_snack = item.snack
@@ -132,7 +139,10 @@ class OrderView(SCView):
 
             order.delete()
 
-        dispatch_message_websocket("order_group", "order_update")
+        dispatch_message_websocket(
+            "orders_lunch_group" if is_order_lunch else "orders_snack_group",
+            "order_update",
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -158,7 +168,10 @@ class PaidOrderView(SCView):
         order.hidden = True
         order.save()
 
-        dispatch_message_websocket("order_group", "order_update")
+        dispatch_message_websocket(
+            "orders_lunch_group" if order.amount_lunch > 0 else "orders_snack_group",
+            "order_update",
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -182,7 +195,10 @@ class FulfilledOrderView(SCView):
         order.fulfilled = True
         order.save()
 
-        dispatch_message_websocket("order_group", "order_update")
+        dispatch_message_websocket(
+            "orders_lunch_group" if order.amount_lunch > 0 else "orders_snack_group",
+            "order_update",
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

@@ -117,8 +117,20 @@ DATABASES = {
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
-    }
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [
+                (
+                    os.getenv("REDIS_HOST"),
+                    os.getenv("REDIS_PORT"),
+                    {"password": os.getenv("REDIS_PASSWORD")},
+                )
+            ],
+            "prefix": "ws:",
+            "expiry": 60,  # seconds
+            "capacity": 10,  # messages
+        },
+    },
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -128,7 +140,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
         "OPTIONS": {
-            "min_length": 10,
+            "min_length": 12,
         },
     },
     {
@@ -142,7 +154,7 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTH_USER_MODEL = "user.User"
 
 
-LANGUAGE_CODE = "pt-br"
+LANGUAGE_CODE = "pt-BR"
 
 TIME_ZONE = "America/Sao_Paulo"
 
