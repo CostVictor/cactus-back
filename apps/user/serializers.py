@@ -84,3 +84,15 @@ class UserSerializer(SCSerializer):
             details.save(user=user)
 
         return user
+
+    def update(self, instance, validated_data):
+        details = validated_data.pop("user_details", None)
+
+        if details:
+            serializer = UserDetailsSerializer(
+                instance.user_details, data=details, partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+        return super().update(instance, validated_data)
