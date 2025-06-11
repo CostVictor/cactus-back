@@ -33,3 +33,17 @@ class SCView(APIView):
             return view(*args, **kwargs)
 
         return wrapper
+
+    def access_to_owner(view):
+        @wraps(view)
+        def wrapper(*args, **kwargs):
+            _, request = args
+            user = request.user
+            target_user = kwargs.get("target_user", None)
+
+            if user.is_anonymous or user != target_user:
+                raise PermissionDenied("Você não tem permissão para acessar essa rota.")
+
+            return view(*args, **kwargs)
+
+        return wrapper
