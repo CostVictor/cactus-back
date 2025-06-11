@@ -190,17 +190,28 @@ class OrderSerializer(SCSerializer):
                     amount_snack += quantity * target_snack.price
 
             amount_lunch = dish.price if lunch else 0
+            choice_numbers = []
+
             for ingredient in lunch:
+                name = ingredient["name"]
+
                 target_composition = Composition.objects.filter(
                     dish__id=dish.id,
-                    ingredient__name=ingredient["name"],
+                    ingredient__name=name,
                     ingredient__deletion_date__isnull=True,
                 ).first()
 
                 if not target_composition:
                     raise serializers.ValidationError(
-                        f"O ingrediente {ingredient['name']} não foi encontado."
+                        f"O ingrediente {name} não foi encontado."
                     )
+
+                choice_number = target_composition.config_choice_number
+                if choice_number and choice_number in choice_numbers:
+                    raise serializers.ValidationError(
+                        f'Você não pode escolher o ingrediente "{name}" pois um outro ingrediente marcado com o mesmo número de escolha única já foi selecionado.'
+                    )
+                choice_numbers.append(choice_number)
 
                 target_ingredient = target_composition.ingredient
                 additional_charge = target_ingredient.additional_charge or 0
