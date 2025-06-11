@@ -72,7 +72,7 @@ class OrderSerializer(SCSerializer):
     user = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(is_active=True, deletion_date__isnull=True)
     )
-    description = serializers.CharField(required=False)
+    description = serializers.CharField(required=False, allow_null=True)
 
     class Meta:
         fields = [
@@ -127,7 +127,7 @@ class OrderSerializer(SCSerializer):
     def representation_for_creator_user(self, value):
         return value.username
 
-    def validate_description(self, value):
+    def internal_value_for_description(self, value):
         if not value:
             return None
 
