@@ -10,6 +10,29 @@ from .models import User
 from .serializers import UserSerializer
 
 
+class AllView(SCView):
+    @SCView.access_to_employee
+    def get(self, request):
+        """Retorna o nome de todos os usuários não funcionários e o nome do funcionário solicitante."""
+
+        users = (
+            User.objects.filter(
+                deletion_date__isnull=True,
+                is_employee=False,
+                is_active=True,
+            )
+            .order_by("username")
+            .all()
+        )
+
+        all_names = {
+            "applicant": request.user.username,
+            "users": [user.username for user in users],
+        }
+
+        return Response(all_names, status=status.HTTP_200_OK)
+
+
 class RegisterView(SCView):
     authentication_classes = []
     throttle_classes = [ScopedRateThrottle]
