@@ -38,7 +38,9 @@ class OrdersView(SCView):
         target_username = data.get("username", None)
         target_user = (
             User.objects.filter(
-                username=target_username.replace("Func.", "").strip(),
+                username=target_username.replace("Func.", "")
+                .replace("(Você)", "")
+                .strip(),
                 deletion_date__isnull=True,
                 is_active=True,
             ).first()
@@ -72,11 +74,14 @@ class OrdersView(SCView):
 
             is_order_lunch = order.amount_lunch > 0
 
-            if (not target_user and creator_user.is_employee) or (
-                target_user and target_user.is_employee
-            ):
+            if creator_user.is_employee:
                 message = "A compra foi registrada."
-                order.final_payment_date = timezone.now()
+
+                if (not target_user or target_user.is_employee) or (
+                    not target_user.is_employee
+                    and data.get("wasPaid", "false").lower() == "true"
+                ):
+                    order.final_payment_date = timezone.now()
 
                 if not is_order_lunch:
                     order.fulfilled = True
