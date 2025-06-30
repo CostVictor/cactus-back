@@ -65,7 +65,7 @@ class BuyIngredientSerializer(SCSerializer):
 
 class OrderSerializer(SCSerializer):
     snacks = serializers.JSONField()
-    lunch = BuyIngredientSerializer(many=True)
+    lunch = serializers.ListField()
     creator_user = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(is_active=True, deletion_date__isnull=True)
     )
@@ -127,6 +127,14 @@ class OrderSerializer(SCSerializer):
     def representation_for_creator_user(self, value):
         return value.username
 
+    def representation_for_snacks(self, _):
+        buy_snacks = self.instance.purchased_snacks
+        return BuySnackSerializer(buy_snacks, many=True).data
+    
+    def representation_for_lunch(self, _):
+        buy_compositions = self.instance.purchased_compositions
+        return BuyIngredientSerializer(buy_compositions, many=True).data
+
     def internal_value_for_description(self, value):
         if not value:
             return None
@@ -134,7 +142,7 @@ class OrderSerializer(SCSerializer):
         return value
 
     def create(self, validated_data):
-        snacks = validated_data.pop("snacks", [])
+        snacks = validated_data.pop("snacks", {})
         lunch = validated_data.pop("lunch", [])
 
         if not snacks and not lunch:
@@ -194,6 +202,7 @@ class OrderSerializer(SCSerializer):
 
             for ingredient in lunch:
                 name = ingredient["name"]
+                quantity = ingredient["quantity"]
 
                 target_composition = Composition.objects.filter(
                     dish__id=dish.id,
@@ -219,13 +228,15 @@ class OrderSerializer(SCSerializer):
                 buy_ingredient = BuyIngredient(
                     order=order,
                     composition=target_composition,
-                    quantity_ingredient=ingredient["quantity"],
+                    quantity_ingredient=quantity,
                     price_to_purchase_dish=dish.price,
                     price_to_purchase_ingredient=additional_charge,
                 )
                 buy_ingredient.save()
 
-                amount_lunch += ingredient["quantity"] * additional_charge
+                amount_lunch += (
+                    (quantity - 1) * additional_charge if quantity > 1 else 0
+                )
 
             order.amount_due = amount_snack + amount_lunch
             order.amount_snacks = amount_snack
