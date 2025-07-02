@@ -130,7 +130,7 @@ class OrderSerializer(SCSerializer):
     def representation_for_snacks(self, _):
         buy_snacks = self.instance.purchased_snacks
         return BuySnackSerializer(buy_snacks, many=True).data
-    
+
     def representation_for_lunch(self, _):
         buy_compositions = self.instance.purchased_compositions
         return BuyIngredientSerializer(buy_compositions, many=True).data
@@ -149,11 +149,23 @@ class OrderSerializer(SCSerializer):
             raise serializers.ValidationError("Nenhum item foi selecionado.")
 
         now = timezone.now()
+        time = now.time()
         weekday = now.weekday() + 1
 
         dish = Dish.objects.filter(day=weekday).first()
         if not dish and lunch:
             raise serializers.ValidationError(f"Não foi possível encontrar o prato.")
+
+        if dish:
+            if dish.initial_deadline and time < dish.initial_deadline:
+                raise serializers.ValidationError(
+                    f"Você só pode pedir almoço a partir das {dish.initial_deadline.strftime('%H:%M')} horas."
+                )
+
+            if dish.deadline and time > dish.deadline:
+                raise serializers.ValidationError(
+                    f"Os pedidos de almoço de hoje só estão disponíveis até as {dish.deadline.strftime('%H:%M')} horas."
+                )
 
         with transaction.atomic():
             order = Order(**validated_data)
@@ -177,7 +189,7 @@ class OrderSerializer(SCSerializer):
 
                     if not target_snack:
                         raise serializers.ValidationError(
-                            f"O item {product['name']} não foi encontado."
+                            f"O item {product['name']} não foi encontrado."
                         )
 
                     if quantity > target_snack.quantity_in_stock:
@@ -212,7 +224,7 @@ class OrderSerializer(SCSerializer):
 
                 if not target_composition:
                     raise serializers.ValidationError(
-                        f"O ingrediente {name} não foi encontado."
+                        f"O ingrediente {name} não foi encontrado."
                     )
 
                 choice_number = target_composition.config_choice_number
