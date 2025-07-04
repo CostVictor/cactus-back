@@ -4,6 +4,7 @@ from rest_framework.exceptions import (
     PermissionDenied,
 )
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.response import Response
 from rest_framework import status
@@ -23,15 +24,6 @@ class LoginView(SCView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        prev_token = request.COOKIES.get("refresh_token")
-        if prev_token:
-            try:
-                invalid_token = RefreshToken(prev_token)
-                invalid_token.blacklist()
-            except:
-                # O token já é inválido.
-                pass
 
         user = serializer.validated_data["user"]
 
@@ -60,13 +52,8 @@ class LogoutView(SCView):
         if not refresh_token:
             raise ValidationError("O token de atualização é obrigatório.")
 
-        try:
-            invalid_token = RefreshToken(refresh_token)
-            invalid_token.blacklist()
-
-        except:
-            # O token já é inválido.
-            pass
+        serializer = TokenRefreshSerializer(data={"refresh": refresh_token})
+        serializer.is_valid()
 
         return Response(
             {
@@ -92,24 +79,25 @@ class RefreshView(SCView):
         if not refresh_token:
             raise AuthenticationFailed("O token de atualização é obrigatório.")
 
+        serializer = TokenRefreshSerializer(data={"refresh": refresh_token})
+
         try:
-            # Revogação do token de atualização anterior.
-            prev_token = RefreshToken(refresh_token)
-            prev_token.blacklist()
+            # Validação e rotação do token
+            serializer.is_valid(raise_exception=True)
+        except:
+            raise AuthenticationFailed("O token de atualização é inválido.")
 
-            user = User.objects.filter(id=prev_token["user_id"]).first()
+        new_refresh = RefreshToken(serializer.validated_data["refresh"])
+        # Obtém o user_id do refresh token para verificar o usuário
+        user = User.objects.filter(id=new_refresh["user_id"]).first()
 
-            if user.is_active:
-                new_refresh_token = RefreshToken.for_user(user)
-
-                data = {"message": "Tokens atualizados."}
-                return generate_response_with_cookie(new_refresh_token, data)
-
+        if not user or not user.is_active:
             comment = (
-                user.comment or "Esta conta foi desativada por tempo indeterminado."
+                user.comment
+                if user and user.comment
+                else "Esta conta foi desativada por tempo indeterminado."
             )
             raise PermissionDenied(comment)
 
-        except:
-            # O token de atualização é inválido (O usuário terá que fazer login novamente).
-            raise AuthenticationFailed("O token de atualização é inválido.")
+        data = {"message": "Tokens atualizados."}
+        return generate_response_with_cookie(new_refresh, data)

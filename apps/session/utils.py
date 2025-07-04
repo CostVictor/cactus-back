@@ -6,7 +6,7 @@ from datetime import timedelta
 
 
 def generate_response_with_cookie(
-    refresh_token: RefreshToken, data: dict, status=status.HTTP_200_OK, days_long=7
+    refresh_token: RefreshToken, data: dict, status=status.HTTP_200_OK, days_long=1
 ):
     """Cria uma response com os cookies de access e refresh configurados em httponly."""
 
