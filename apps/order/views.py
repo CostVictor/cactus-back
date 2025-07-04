@@ -132,7 +132,7 @@ class OrderView(SCView):
         """Apaga todos os registros associado a um pedido caso ele não tenha sido pago."""
 
         if order.final_payment_date:
-            raise ValidationError("Não é possivel apagar um pedido que já foi pago.")
+            raise ValidationError("Não é possível apagar um pedido que já foi pago.")
 
         is_order_lunch = order.amount_lunch > 0
 

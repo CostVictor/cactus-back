@@ -154,42 +154,55 @@ class OrderSerializer(SCSerializer):
 
         dish = Dish.objects.filter(day=weekday).first()
         if not dish and lunch:
-            raise serializers.ValidationError(f"Não foi possível encontrar o prato.")
+            raise serializers.ValidationError("Não foi possível encontrar o prato.")
 
         if dish:
             if dish.initial_deadline and time < dish.initial_deadline:
                 raise serializers.ValidationError(
                     f"Você só pode pedir almoço a partir das {dish.initial_deadline.strftime('%H:%M')} horas."
                 )
-
             if dish.deadline and time > dish.deadline:
                 raise serializers.ValidationError(
                     f"Os pedidos de almoço de hoje só estão disponíveis até as {dish.deadline.strftime('%H:%M')} horas."
                 )
 
         with transaction.atomic():
-            order = Order(**validated_data)
-            order.creation_date = now
-            order.amount_due = 0
-            order.amount_snacks = 0
-            order.amount_lunch = 0
-            order.save()
+            order = Order.objects.create(
+                creation_date=now,
+                amount_due=0,
+                amount_snacks=0,
+                amount_lunch=0,
+                **validated_data,
+            )
 
             amount_snack = 0
-            for key, value in snacks.items():
-                for product in value:
+
+            # Carrega todos os snacks relevantes de uma vez
+            all_snack_names = [
+                (key, product["name"])
+                for key, items in snacks.items()
+                for product in items
+            ]
+            snack_queryset = Snack.objects.filter(
+                name__in=[name for _, name in all_snack_names],
+                deletion_date__isnull=True,
+                category__name__in=[key for key, _ in all_snack_names],
+                category__deletion_date__isnull=True,
+            ).select_related("category")
+
+            snack_map = {
+                (snack.category.name, snack.name): snack for snack in snack_queryset
+            }
+
+            for key, items in snacks.items():
+                for product in items:
+                    name = product["name"]
                     quantity = product["quantity"]
 
-                    target_snack = Snack.objects.filter(
-                        name=product["name"],
-                        deletion_date__isnull=True,
-                        category__name=key,
-                        category__deletion_date__isnull=True,
-                    ).first()
-
+                    target_snack = snack_map.get((key, name))
                     if not target_snack:
                         raise serializers.ValidationError(
-                            f"O item {product['name']} não foi encontrado."
+                            f"O item {name} não foi encontrado."
                         )
 
                     if quantity > target_snack.quantity_in_stock:
@@ -198,62 +211,71 @@ class OrderSerializer(SCSerializer):
                         )
 
                     target_snack.quantity_in_stock -= quantity
-                    target_snack.save()
+                    target_snack.save(update_fields=["quantity_in_stock"])
 
-                    buy_snack = BuySnack(
+                    BuySnack.objects.create(
                         snack=target_snack,
                         order=order,
                         quantity_product=quantity,
                         price_to_purchase=target_snack.price,
                     )
-                    buy_snack.save()
+
                     amount_snack += quantity * target_snack.price
 
             amount_lunch = dish.price if lunch else 0
-            choice_numbers = []
+            choice_numbers = set()
 
-            for ingredient in lunch:
-                name = ingredient["name"]
-                quantity = ingredient["quantity"]
-
-                target_composition = Composition.objects.filter(
-                    dish__id=dish.id,
-                    ingredient__name=name,
+            if lunch:
+                # Carrega todos os ingredientes e composições de uma vez
+                ingredient_names = [item["name"] for item in lunch]
+                composition_queryset = Composition.objects.select_related(
+                    "ingredient"
+                ).filter(
+                    dish_id=dish.id,
+                    ingredient__name__in=ingredient_names,
                     ingredient__deletion_date__isnull=True,
-                ).first()
+                )
 
-                if not target_composition:
-                    raise serializers.ValidationError(
-                        f"O ingrediente {name} não foi encontrado."
+                composition_map = {
+                    comp.ingredient.name: comp for comp in composition_queryset
+                }
+
+                for item in lunch:
+                    name = item["name"]
+                    quantity = item["quantity"]
+
+                    composition = composition_map.get(name)
+                    if not composition:
+                        raise serializers.ValidationError(
+                            f"O ingrediente {name} não foi encontrado."
+                        )
+
+                    choice_number = composition.config_choice_number
+                    if choice_number:
+                        if choice_number in choice_numbers:
+                            raise serializers.ValidationError(
+                                f'Você não pode escolher o ingrediente "{name}" pois um outro ingrediente marcado com o mesmo número de escolha única já foi selecionado.'
+                            )
+
+                        choice_numbers.add(choice_number)
+
+                    additional_charge = composition.ingredient.additional_charge or 0
+
+                    BuyIngredient.objects.create(
+                        order=order,
+                        composition=composition,
+                        quantity_ingredient=quantity,
+                        price_to_purchase_dish=dish.price,
+                        price_to_purchase_ingredient=additional_charge,
                     )
 
-                choice_number = target_composition.config_choice_number
-                if choice_number and choice_number in choice_numbers:
-                    raise serializers.ValidationError(
-                        f'Você não pode escolher o ingrediente "{name}" pois um outro ingrediente marcado com o mesmo número de escolha única já foi selecionado.'
+                    amount_lunch += (
+                        (quantity - 1) * additional_charge if quantity > 1 else 0
                     )
-                choice_numbers.append(choice_number)
-
-                target_ingredient = target_composition.ingredient
-                additional_charge = target_ingredient.additional_charge or 0
-
-                buy_ingredient = BuyIngredient(
-                    order=order,
-                    composition=target_composition,
-                    quantity_ingredient=quantity,
-                    price_to_purchase_dish=dish.price,
-                    price_to_purchase_ingredient=additional_charge,
-                )
-                buy_ingredient.save()
-
-                amount_lunch += (
-                    (quantity - 1) * additional_charge if quantity > 1 else 0
-                )
 
             order.amount_due = amount_snack + amount_lunch
             order.amount_snacks = amount_snack
             order.amount_lunch = amount_lunch
-
-            order.save()
+            order.save(update_fields=["amount_due", "amount_snacks", "amount_lunch"])
 
         return order
