@@ -1,24 +1,4 @@
 services:
-  api:
-    image: cactus-back
-    build: .
-    ports:
-      - "8000:8000"
-    volumes:
-      - .:/app
-    env_file:
-      - .env
-    depends_on:
-      - db
-      - redis
-    command: >
-      sh -c "python manage.py makemigrations user &&
-             python manage.py makemigrations snack &&
-             python manage.py makemigrations lunch &&
-             python manage.py makemigrations order &&
-             python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
-
   db:
     image: postgres:15
     env_file:
@@ -29,6 +9,59 @@ services:
   redis:
     image: redis:8.0.2-alpine
     env_file:
-      - .env.db
+      - .env.redis
     ports:
       - "6379:6379"
+
+  migrate:
+    image: cactus-back
+    build: .
+    volumes:
+      - .:/app
+    command: >
+      sh -c "python manage.py makemigrations user &&
+             python manage.py makemigrations snack &&
+             python manage.py makemigrations lunch &&
+             python manage.py makemigrations order &&
+             python manage.py makemigrations django_celery_beat &&
+             python manage.py migrate"
+    restart: no
+    depends_on:
+      - db
+
+  api:
+    image: cactus-back
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+    command: >
+      sh -c "python manage.py runserver 0.0.0.0:8000"
+    
+  broker:
+    image: cactus-back
+    build: .
+    volumes:
+      - .:/app
+    depends_on:
+      - api
+    command: >
+      sh -c "celery -A cactus worker -l INFO"
+
+  beat:
+    image: cactus-back
+    build: .
+    volumes:
+      - .:/app
+    depends_on:
+      - api
+    command: >
+      sh -c "celery -A cactus beat -l INFO"

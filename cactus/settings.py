@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_celery_beat",
     "channels",
     "corsheaders",
     "rest_framework",
@@ -126,7 +127,10 @@ CHANNEL_LAYERS = {
                 (
                     os.getenv("REDIS_HOST"),
                     os.getenv("REDIS_PORT"),
-                    {"password": os.getenv("REDIS_PASSWORD")},
+                    {
+                        "password": os.getenv("REDIS_PASSWORD"),
+                        "db": 0,
+                    },  # "0" DB WEBSOCKET
                 )
             ],
             "prefix": "ws:",
@@ -135,6 +139,14 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+CELERY_BROKER_URL = (
+    f"redis://{os.getenv('REDIS_HOST')}:{os.getenv('REDIS_PORT')}/1"  # "1" DB CELERY
+)
+CELERY_TIME_ZONE = "America/Sao_Paulo"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
