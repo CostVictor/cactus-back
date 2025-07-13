@@ -52,7 +52,14 @@ class OrderSnackConsumer(SCWebsocketConsumer):
         serializer = OrderSerializer(
             orders,
             many=True,
-            remove_field=["creator_user, creation_date", "fulfilled", "hidden"],
+            remove_field=[
+                "creator_user",
+                "creation_date",
+                "fulfilled",
+                "hidden",
+                "input_snacks",
+                "input_lunch",
+            ],
         )
         return serializer.data
 
@@ -103,6 +110,13 @@ class OrderLunchConsumer(SCWebsocketConsumer):
         serializer = OrderSerializer(
             orders,
             many=True,
-            remove_field=["creator_user, creation_date", "fulfilled", "hidden"],
+            remove_field=[
+                "creator_user",
+                "creation_date",
+                "fulfilled",
+                "hidden",
+                "input_snacks",
+                "input_lunch",
+            ],
         )
         return serializer.data

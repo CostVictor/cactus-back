@@ -13,7 +13,7 @@ class SCAuthenticationHttp(JWTAuthentication):
     def authenticate(self, request) -> tuple[User, AccessToken]:
         """Valida se o usuário está autenticado."""
 
-        # Obtem o token de acesso (access_token).
+        # Obtém o token de acesso (access_token).
         token = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE"])
 
         if token is None:

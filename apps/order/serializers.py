@@ -9,8 +9,6 @@ from apps.snack.models import Snack
 from apps.lunch.models import Dish, Composition
 from apps.user.models import User
 
-from apps.user.serializers import UserSerializer
-
 from utils.formatters import format_price
 from .models import Order, BuySnack, BuyIngredient
 
@@ -27,9 +25,11 @@ class BuySnackSerializer(SCSerializer):
         model = BuySnack
 
     def representation_for_price_to_purchase(self, value):
+        amount = float(value)
+
         return {
-            "formatted_amount": format_price(value),
-            "amount": value,
+            "formatted_amount": format_price(amount),
+            "amount": amount,
         }
 
 
@@ -51,21 +51,27 @@ class BuyIngredientSerializer(SCSerializer):
         return days_week[obj.composition.dish.day]
 
     def representation_for_price_to_purchase_dish(self, value):
+        amount = float(value)
+
         return {
-            "formatted_amount": format_price(value),
-            "amount": value,
+            "formatted_amount": format_price(amount),
+            "amount": amount,
         }
 
     def representation_for_price_to_purchase_ingredient(self, value):
+        amount = float(value)
+
         return {
-            "formatted_amount": format_price(value),
-            "amount": value,
+            "formatted_amount": format_price(amount),
+            "amount": amount,
         }
 
 
 class OrderSerializer(SCSerializer):
-    snacks = serializers.JSONField()
-    lunch = serializers.ListField()
+    snacks = serializers.SerializerMethodField()
+    lunch = serializers.SerializerMethodField()
+    input_snacks = serializers.JSONField()
+    input_lunch = serializers.ListField()
     creator_user = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(is_active=True, deletion_date__isnull=True)
     )
@@ -89,6 +95,8 @@ class OrderSerializer(SCSerializer):
             "description",
             "snacks",
             "lunch",
+            "input_snacks",
+            "input_lunch",
         ]
         read_only_fields = [
             "public_id",
@@ -104,36 +112,42 @@ class OrderSerializer(SCSerializer):
         model = Order
 
     def representation_for_amount_due(self, value):
+        amount = float(value)
+
         return {
-            "formatted_amount": format_price(value),
-            "amount": value,
+            "formatted_amount": format_price(amount),
+            "amount": amount,
         }
 
     def representation_for_amount_snacks(self, value):
+        amount = float(value)
+
         return {
-            "formatted_amount": format_price(value),
-            "amount": value,
+            "formatted_amount": format_price(amount),
+            "amount": amount,
         }
 
     def representation_for_amount_lunch(self, value):
+        amount = float(value)
+
         return {
-            "formatted_amount": format_price(value),
-            "amount": value,
+            "formatted_amount": format_price(amount),
+            "amount": amount,
         }
 
     def representation_for_user(self, value):
-        return value.username
+        user = User.objects.filter(id=value).first()
+        return user.username
 
     def representation_for_creator_user(self, value):
-        return value.username
+        user = User.objects.filter(id=value).first()
+        return user.username
 
-    def representation_for_snacks(self, _):
-        buy_snacks = self.instance.purchased_snacks
-        return BuySnackSerializer(buy_snacks, many=True).data
+    def get_snacks(self, obj):
+        return BuySnackSerializer(obj.purchased_snacks, many=True).data
 
-    def representation_for_lunch(self, _):
-        buy_compositions = self.instance.purchased_compositions
-        return BuyIngredientSerializer(buy_compositions, many=True).data
+    def get_lunch(self, obj):
+        return BuyIngredientSerializer(obj.purchased_compositions, many=True).data
 
     def internal_value_for_description(self, value):
         if not value:
@@ -142,8 +156,8 @@ class OrderSerializer(SCSerializer):
         return value
 
     def create(self, validated_data):
-        snacks = validated_data.pop("snacks", {})
-        lunch = validated_data.pop("lunch", [])
+        snacks = validated_data.pop("input_snacks", {})
+        lunch = validated_data.pop("input_lunch", [])
 
         if not snacks and not lunch:
             raise serializers.ValidationError("Nenhum item foi selecionado.")

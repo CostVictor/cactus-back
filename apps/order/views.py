@@ -25,7 +25,9 @@ class OrdersView(SCView):
         if not user.is_employee:
             orders = orders.filter(user=user)
 
-        order_serializer = OrderSerializer(orders, many=True)
+        order_serializer = OrderSerializer(
+            orders, many=True, remove_field=["input_snacks", "input_lunch"]
+        )
         return Response(order_serializer.data, status=status.HTTP_200_OK)
 
     def post(self, response):
@@ -67,6 +69,8 @@ class OrdersView(SCView):
                     "amount_due",
                     "fulfilled",
                     "hidden",
+                    "snacks",
+                    "lunch",
                 ],
             )
             serializer.is_valid(raise_exception=True)
@@ -125,7 +129,9 @@ class OrderView(SCView):
     def get(self, _, public_id, order):
         """Retorna os detalhes de um pedido."""
 
-        order_serializer = OrderSerializer(order)
+        order_serializer = OrderSerializer(
+            order, remove_field=["input_snacks", "input_lunch"]
+        )
         return Response(order_serializer.data, status=status.HTTP_200_OK)
 
     def delete(self, _, public_id, order):
