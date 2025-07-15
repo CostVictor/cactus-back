@@ -5,7 +5,7 @@ from django.db import transaction
 
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, PermissionDenied
 
 from utils.message import dispatch_message_websocket
 
@@ -107,43 +107,46 @@ class OrdersView(SCView):
 
 class OrderView(SCView):
     def dispatch(self, request, *args, **kwargs):
-        is_employee = request.user.is_employee
         public_id = kwargs.get("public_id")
-
-        if is_employee:
-            kwargs["order"] = get_object_or_404(
-                Order,
-                public_id=public_id,
-            )
-            return super().dispatch(request, *args, **kwargs)
 
         query_order = get_object_or_404(
             Order,
             public_id=public_id,
-            user=request.user,
         )
         kwargs["order"] = query_order
 
         return super().dispatch(request, *args, **kwargs)
 
-    def get(self, _, public_id, order):
+    def get(self, request, public_id, order):
         """Retorna os detalhes de um pedido."""
+
+        user = request.user
+
+        if not user.is_employee and order.user != user:
+            raise PermissionDenied("Você não tem permissão para acessar este pedido.")
 
         order_serializer = OrderSerializer(
             order, remove_field=["input_snacks", "input_lunch"]
         )
         return Response(order_serializer.data, status=status.HTTP_200_OK)
 
-    def delete(self, _, public_id, order):
+    def delete(self, request, public_id, order):
         """Apaga todos os registros associado a um pedido caso ele não tenha sido pago."""
 
-        if order.final_payment_date:
-            raise ValidationError("Não é possível apagar um pedido que já foi pago.")
+        user = request.user
+
+        if not user.is_employee and order.user != user:
+            raise PermissionDenied("Você não tem permissão para apagar este pedido.")
+
+        if order.final_payment_date or order.fulfilled:
+            raise ValidationError(
+                "Não é possível apagar um pedido que já foi pago ou atendido."
+            )
 
         is_order_lunch = order.amount_lunch > 0
 
         with transaction.atomic():
-            for item in order.purchased_snacks:
+            for item in order.purchased_snacks.all():
                 target_snack = item.snack
                 target_snack.quantity_in_stock += item.quantity_product
                 target_snack.save()
@@ -152,7 +155,7 @@ class OrderView(SCView):
 
         dispatch_message_websocket(
             "orders_lunch_group" if is_order_lunch else "orders_snack_group",
-            "order_update",
+            "orders_update",
         )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -181,7 +184,7 @@ class PaidOrderView(SCView):
 
         dispatch_message_websocket(
             "orders_lunch_group" if order.amount_lunch > 0 else "orders_snack_group",
-            "order_update",
+            "orders_update",
         )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -208,7 +211,7 @@ class FulfilledOrderView(SCView):
 
         dispatch_message_websocket(
             "orders_lunch_group" if order.amount_lunch > 0 else "orders_snack_group",
-            "order_update",
+            "orders_update",
         )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
