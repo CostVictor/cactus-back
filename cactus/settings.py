@@ -110,12 +110,12 @@ ASGI_APPLICATION = "cactus.asgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": os.getenv("DB_ENGINE"),
+        "ENGINE": "django.db.backends.postgresql",
         "NAME": os.getenv("DB_NAME"),
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
+        "HOST": "db",
+        "PORT": "5432",
     }
 }
 
@@ -125,10 +125,9 @@ CHANNEL_LAYERS = {
         "CONFIG": {
             "hosts": [
                 (
-                    os.getenv("REDIS_HOST"),
-                    os.getenv("REDIS_PORT"),
+                    "redis",
+                    "6379",
                     {
-                        "password": os.getenv("REDIS_PASSWORD"),
                         "db": 0,
                     },  # "0" DB WEBSOCKET
                 )
@@ -140,9 +139,7 @@ CHANNEL_LAYERS = {
     },
 }
 
-CELERY_BROKER_URL = (
-    f"redis://{os.getenv('REDIS_HOST')}:{os.getenv('REDIS_PORT')}/1"  # "1" DB CELERY
-)
+CELERY_BROKER_URL = f"redis://redis:6379/1"  # "1" DB CELERY
 CELERY_TIME_ZONE = "America/Sao_Paulo"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"

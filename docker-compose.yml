@@ -8,8 +8,6 @@ services:
 
   redis:
     image: redis:8.0.2-alpine
-    env_file:
-      - .env.redis
     ports:
       - "6379:6379"
 
