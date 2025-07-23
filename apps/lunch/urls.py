@@ -10,16 +10,16 @@ from .views import (
 
 urlpatterns = [
     path("", LunchWeekView.as_view(), name="lunch_week"),
-    path("today/", TodayView.as_view(), name="today"),
-    path("ingredients/", IngredientsView.as_view(), name="ingredients"),
+    path("today", TodayView.as_view(), name="today"),
+    path("i", IngredientsView.as_view(), name="ingredients"),
     path(
-        "ingredients/<str:ingredient_name>/",
+        "i/<str:ingredient_name>",
         IngredientView.as_view(),
         name="ingredient",
     ),
-    path("<str:dish_name>/", DishView.as_view(), name="dish"),
+    path("d/<str:dish_name>", DishView.as_view(), name="dish"),
     path(
-        "<str:dish_name>/<str:ingredient_name>/",
+        "d/<str:dish_name>/<str:ingredient_name>",
         CompositionView.as_view(),
         name="composition",
     ),

@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError, PermissionDenied
 
 from utils.message import dispatch_message_websocket
+from utils.formatters import format_price
 
 from apps.user.models import User
 
@@ -16,19 +17,7 @@ from .serializers import OrderSerializer
 
 
 class OrdersView(SCView):
-    def get(self, request):
-        """Retorna os detalhes de todos os pedidos."""
-
-        user = request.user
-        orders = Order.objects
-
-        if not user.is_employee:
-            orders = orders.filter(user=user)
-
-        order_serializer = OrderSerializer(
-            orders, many=True, remove_field=["input_snacks", "input_lunch"]
-        )
-        return Response(order_serializer.data, status=status.HTTP_200_OK)
+    def get(self, request): ...
 
     def post(self, response):
         """Cria um novo pedido."""
@@ -68,7 +57,6 @@ class OrdersView(SCView):
                     "amount_lunch",
                     "amount_due",
                     "fulfilled",
-                    "hidden",
                     "snacks",
                     "lunch",
                 ],
@@ -89,7 +77,6 @@ class OrdersView(SCView):
 
                 if not is_order_lunch:
                     order.fulfilled = True
-                    order.hidden = True
 
                 order.save()
 
@@ -179,7 +166,6 @@ class PaidOrderView(SCView):
 
         order.final_payment_date = timezone.now()
         order.fulfilled = True
-        order.hidden = True
         order.save()
 
         dispatch_message_websocket(

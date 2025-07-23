@@ -91,7 +91,6 @@ class OrderSerializer(SCSerializer):
             "amount_snacks",
             "amount_lunch",
             "fulfilled",
-            "hidden",
             "description",
             "snacks",
             "lunch",

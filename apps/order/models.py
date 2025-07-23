@@ -18,7 +18,6 @@ class Order(models.Model):
     fulfilled = models.BooleanField(default=False)
     final_payment_date = models.DateTimeField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
-    hidden = models.BooleanField(default=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
     creator_user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="configured_orders"
