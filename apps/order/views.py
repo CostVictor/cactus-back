@@ -1,15 +1,16 @@
+from urllib import request
 from core.view import SCView
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Q
 
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError, PermissionDenied
+from datetime import timedelta
 
 from utils.message import dispatch_message_websocket
-from utils.formatters import format_price
-
 from apps.user.models import User
 
 from .models import Order
@@ -17,7 +18,39 @@ from .serializers import OrderSerializer
 
 
 class OrdersView(SCView):
-    def get(self, request): ...
+    def get(self, request):
+        """
+        Retorna uma lista de pedidos conforme parâmetros da requisição.
+
+        Parâmetros de consulta (query params):
+        - date (opcional): filtra pedidos pela data de criação (formato esperado: YYYY-MM-DD).
+        - paid (opcional): filtra pedidos pagos ou não pagos.
+          - "true" -> retorna pedidos pagos.
+          - qualquer outro valor ou ausente -> retorna pedidos não pagos.
+        """
+
+        query_param_date = request.query_params.get("date", None)
+
+        # Pedidos pagos -> final_payment_date != Null
+        # Pedidos não pagos -> final_payment_date == Null
+        has_final_payment_date = (
+            not request.query_params.get("paid", "false").lower() == "true"
+        )
+
+        query_filter = {
+            "final_payment_date__isnull": has_final_payment_date,
+            "user": request.user,
+        }
+
+        if query_param_date:
+            query_filter["creation_date__date"] = query_param_date
+
+        orders = Order.objects.filter(**query_filter)
+        orders_serializer = OrderSerializer(
+            orders, many=True, remove_field=["input_snacks", "input_lunch", "user"]
+        )
+
+        return Response(orders_serializer.data, status=status.HTTP_200_OK)
 
     def post(self, response):
         """Cria um novo pedido."""
@@ -88,8 +121,91 @@ class OrdersView(SCView):
         return Response({"message": message}, status=status.HTTP_201_CREATED)
 
 
+class UserOrdersView(SCView):
+    def dispatch(self, request, *args, **kwargs):
+        username = kwargs.get("username")
+
+        query_user = get_object_or_404(User, username=username)
+        kwargs["target_user"] = query_user
+
+        return super().dispatch(request, *args, **kwargs)
+
+    @SCView.access_to_employee
+    def get(self, request, username, target_user):
+        """
+        Retorna a lista de pedidos de um usuário conforme parâmetros da requisição.
+
+        Parâmetros de consulta (query params):
+        - date (opcional): filtra pedidos pela data de criação (formato esperado: YYYY-MM-DD).
+        - paid (opcional): filtra pedidos pagos ou não pagos.
+          - "true"  -> retorna pedidos pagos.
+          - qualquer outro valor ou ausente -> retorna pedidos não pagos.
+        """
+
+        query_param_date = request.query_params.get("date", None)
+
+        # Pedidos pagos -> final_payment_date != Null
+        # Pedidos não pagos -> final_payment_date == Null
+        has_final_payment_date = (
+            not request.query_params.get("paid", "false").lower() == "true"
+        )
+
+        query_filter = {
+            "final_payment_date__isnull": has_final_payment_date,
+            "user": target_user,
+        }
+
+        if query_param_date:
+            query_filter["creation_date__date"] = query_param_date
+
+        orders = Order.objects.filter(**query_filter)
+        orders_serializer = OrderSerializer(
+            orders, many=True, remove_field=["input_snacks", "input_lunch", "user"]
+        )
+
+        return Response(orders_serializer.data, status=status.HTTP_200_OK)
+
+
 # class PayOrdersView(SCView):
 #     def post(self, response): ...
+
+
+class OverviewView(SCView):
+    @SCView.access_to_employee
+    def get(self, _):
+        """
+        Retorna um resumo dos pedidos de pagamento por usuário, classificando-os entre pagos no dia atual e pendentes, com base na data de pagamento final.
+        """
+
+        today_date = timedelta.now().date()
+
+        orders = Order.objects.filter(
+            Q(final_payment_date__isnull=True) | Q(final_payment_date__date=today_date),
+        ).order_by("user__username")
+
+        orders_serializer = OrderSerializer(
+            orders, many=True, remove_field=["input_snacks", "input_lunch"]
+        )
+
+        data = {}
+
+        for order in orders_serializer:
+            user = order["user"]
+            amount_due = order["amount_due"]
+
+            if user not in data:
+                if user == request.user.username:
+                    user = f"{user} (Você)"
+
+                data[user] = {"payment_pending": [], "paid_today": []}
+
+            if order["final_payment_date"]:
+                data[user]["paid_today"].append(amount_due)
+                continue
+
+            data[user]["payment_pending"].append(amount_due)
+
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class OrderView(SCView):

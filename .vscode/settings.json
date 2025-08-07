@@ -1,3 +1,4 @@
 {
-  "cSpell.words": ["django", "makemigrations", "postgres", "runserver"]
+  "cSpell.words": ["django", "makemigrations", "postgres", "runserver"],
+  "python.analysis.autoImportCompletions": true
 }
